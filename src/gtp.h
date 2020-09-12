@@ -1,7 +1,7 @@
 #ifndef GTP_H
 #define GTP_H
 
-#include "weiqi.h"
+#include "player.h"
 
 int gtp_init(struct Player* player, FILE* in, FILE* out);
 

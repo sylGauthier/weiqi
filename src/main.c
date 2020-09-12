@@ -1,5 +1,5 @@
 #include "pipe_proc.h"
-#include "weiqi.h"
+#include "game.h"
 #include "gtp.h"
 #include "human.h"
 
@@ -34,7 +34,7 @@ int main() {
     char* gnugocmd[] = {"/usr/bin/gnugo", "--mode", "gtp", NULL};
     int ok = 1;
 
-    weiqi_init(&ctx, 19);
+    game_init(&ctx, 19);
 
     if (!local_gtp_engine_init(&ctx.white, gnugocmd[0], gnugocmd)) {
         fprintf(stderr, "gnugo init failed\n");
@@ -43,8 +43,8 @@ int main() {
         fprintf(stderr, "human player init failed\n");
         ok = 0;
     } else {
-        weiqi_run(&ctx);
+        game_run(&ctx);
     }
-    weiqi_free(&ctx);
+    game_free(&ctx);
     return !ok;
 }

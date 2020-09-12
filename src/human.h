@@ -1,7 +1,7 @@
 #ifndef HUMAN_H
 #define HUMAN_H
 
-#include "weiqi.h"
+#include "player.h"
 
 int human_init(struct Player* player);
 
