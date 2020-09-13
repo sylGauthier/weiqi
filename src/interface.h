@@ -11,6 +11,8 @@
 struct Interface {
     struct Scene scene;
     struct Camera camera;
+    struct Node* camNode;
+    struct Node* camOrientation;
 
     struct Board3D board;
     struct Asset3D wStone;

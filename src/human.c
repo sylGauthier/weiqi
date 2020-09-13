@@ -8,6 +8,7 @@ int human_init(struct Player* player) {
     player->out = NULL;
     player->send_move = human_send_move;
     player->get_move = human_get_move;
+    player->reset = human_reset;
     return 1;
 }
 
@@ -38,4 +39,8 @@ int human_get_move(struct Player* player, enum WeiqiColor color,
         }
     }
     return ok;
+}
+
+int human_reset(struct Player* player) {
+    return 1;
 }

@@ -5,6 +5,21 @@
 
 #include "interface.h"
 
+void update_node(struct Scene* scene, struct Node* n, void* data) {
+    switch (n->type) {
+        case NODE_DLIGHT:
+            break;
+        case NODE_PLIGHT:
+            break;
+        case NODE_SLIGHT:
+            break;
+        case NODE_CAMERA:
+            camera_buffer_object_update_view_and_position(&scene->camera, MAT_CONST_CAST(n->data.camera->view));
+            break;
+        default:;
+    }
+}
+
 void resize_callback(struct Viewer* viewer, void* data) {
     struct Interface* interface = data;
 
@@ -28,6 +43,14 @@ void key_callback(struct Viewer* viewer, int key, int scancode, int action,
 void cursor_callback(struct Viewer* viewer, double xpos, double ypos,
                      double dx, double dy, int bl, int bm, int br,
                      void* data) {
+    struct Interface* ui = data;
+    Vec3 axisZ = {0, 0, 1};
+    Vec3 axisX = {1, 0, 0};
+
+    if (bl) {
+        node_rotate(ui->camOrientation, axisZ, -dx / viewer->width);
+        node_slew(ui->camOrientation, axisX, -dy / viewer->width);
+    }
     return;
 }
 
@@ -79,9 +102,9 @@ static void render_board(struct Interface* ui) {
 void* run_interface(void* arg) {
     struct Interface* ui = arg;
     int sceneInit = 0;
+    float scale = 1. / 1.1;
+    float stoneRadius = 1. / (2. * (float)ui->weiqi->boardSize) * scale;
 
-    load_id4(ui->camera.view);
-    ui->camera.view[3][2] = -5;
     camera_projection(1., 12 / 360. * 2 * M_PI, 0.001, 1000.,
                       ui->camera.projection);
     asset_init(&ui->board.geom);
@@ -92,12 +115,15 @@ void* run_interface(void* arg) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
     } else if (!(sceneInit = scene_init(&ui->scene, &ui->camera))) {
         fprintf(stderr, "Error: interface: can't init scene\n");
-    } else if (!board_create(&ui->board, ui->weiqi->boardSize, 1. / 1.1,
+    } else if (!board_create(&ui->board, ui->weiqi->boardSize, scale,
                              0.59, 0.5, 0.3)) {
         fprintf(stderr, "Error: interface: can't create board\n");
-    } else if (!stone_create(&ui->wStone, 0.02, 1., 1., 1.)
-            || !stone_create(&ui->bStone, 0.02, 0.1, 0.1, 0.1)) {
+    } else if (!stone_create(&ui->wStone, stoneRadius, 1., 1., 1.)
+            || !stone_create(&ui->bStone, stoneRadius, 0.1, 0.1, 0.1)) {
         fprintf(stderr, "Error: interface: can't create stones\n");
+    } else if (    !(ui->camNode = malloc(sizeof(struct Node)))
+                || !(ui->camOrientation = malloc(sizeof(struct Node)))) {
+        fprintf(stderr, "Error: interface: can't create cam node\n");
     } else {
         ui->viewer->callbackData = ui;
         ui->viewer->resize_callback = resize_callback;
@@ -105,8 +131,21 @@ void* run_interface(void* arg) {
         ui->viewer->cursor_callback = cursor_callback;
         ui->viewer->close_callback = close_callback;
 
+        {
+            Vec3 t = {0, 0, 5};
+            node_init(ui->camOrientation);
+            node_init(ui->camNode);
+            node_set_camera(ui->camNode, &ui->camera);
+            node_add_child(&ui->scene.root, ui->camOrientation);
+            node_add_child(ui->camOrientation, ui->camNode);
+            node_translate(ui->camNode, t);
+        }
+
         while (ui->running) {
             viewer_process_events(ui->viewer);
+            scene_update_nodes(&ui->scene, update_node, NULL);
+            uniform_buffer_send(&ui->scene.lights);
+            uniform_buffer_send(&ui->scene.camera);
             render_board(ui);
             viewer_next_frame(ui->viewer);
         }

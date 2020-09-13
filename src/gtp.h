@@ -10,4 +10,6 @@ int gtp_send_move(struct Player* player, enum WeiqiColor color,
 int gtp_get_move(struct Player* player, enum WeiqiColor color,
                  unsigned int* row, unsigned int* col);
 
+int gtp_reset(struct Player* player);
+
 #endif
