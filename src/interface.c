@@ -63,6 +63,7 @@ static void render_stone(struct Interface* ui, enum WeiqiColor color,
     Mat4 model;
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
+    float zScale = 0.3;
     struct Asset3D* stone;
 
     load_id4(model);
@@ -70,7 +71,8 @@ static void render_stone(struct Interface* ui, enum WeiqiColor color,
 
     model[3][0] = ui->board.gridScale * (col * (1. / (s - 1)) - 0.5);
     model[3][1] = ui->board.gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = 0.;
+    model[3][2] = ui->board.thickness / 2. + zScale * ui->stoneRadius;
+    model[2][2] = zScale;
 
     stone = color == W_WHITE ? &ui->wStone : &ui->bStone;
     material_use(stone->mat);
@@ -103,9 +105,9 @@ void* run_interface(void* arg) {
     struct Interface* ui = arg;
     int sceneInit = 0;
     float scale = 1. / 1.1;
-    float stoneRadius = 1. / (2. * (float)ui->weiqi->boardSize) * scale;
 
-    camera_projection(1., 12 / 360. * 2 * M_PI, 0.001, 1000.,
+    ui->stoneRadius = 1. / (2. * (float)ui->weiqi->boardSize) * scale;
+    camera_projection(1., 30 / 360. * 2 * M_PI, 0.001, 1000.,
                       ui->camera.projection);
     asset_init(&ui->board.geom);
     asset_init(&ui->wStone);
@@ -118,8 +120,8 @@ void* run_interface(void* arg) {
     } else if (!board_create(&ui->board, ui->weiqi->boardSize, scale,
                              0.59, 0.5, 0.3)) {
         fprintf(stderr, "Error: interface: can't create board\n");
-    } else if (!stone_create(&ui->wStone, stoneRadius, 1., 1., 1.)
-            || !stone_create(&ui->bStone, stoneRadius, 0.1, 0.1, 0.1)) {
+    } else if (!stone_create(&ui->wStone, ui->stoneRadius, 1., 1., 1.)
+            || !stone_create(&ui->bStone, ui->stoneRadius, 0.1, 0.1, 0.1)) {
         fprintf(stderr, "Error: interface: can't create stones\n");
     } else if (    !(ui->camNode = malloc(sizeof(struct Node)))
                 || !(ui->camOrientation = malloc(sizeof(struct Node)))) {
@@ -132,7 +134,7 @@ void* run_interface(void* arg) {
         ui->viewer->close_callback = close_callback;
 
         {
-            Vec3 t = {0, 0, 5};
+            Vec3 t = {0, 0, 2};
             node_init(ui->camOrientation);
             node_init(ui->camNode);
             node_set_camera(ui->camNode, &ui->camera);
