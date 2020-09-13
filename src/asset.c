@@ -43,7 +43,8 @@ int board_create(struct Board3D* board, unsigned int size, float gridScale,
     struct Mesh box;
     GLuint tex;
 
-    if (!make_box(&box, 1., 1., 0.01)) {
+    board->thickness = 0.01;
+    if (!make_box(&box, 1., 1., board->thickness)) {
         fprintf(stderr, "Error: interface: can't create box\n");
         return 0;
     } else if (!(board->geom.va = vertex_array_new(&box))) {

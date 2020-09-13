@@ -12,6 +12,7 @@ struct Asset3D {
 struct Board3D {
     struct Asset3D geom;
     float gridScale;
+    float thickness;
 };
 
 int board_create(struct Board3D* board, unsigned int size, float gridScale,

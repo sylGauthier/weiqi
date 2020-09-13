@@ -17,6 +17,7 @@ struct Interface {
     struct Board3D board;
     struct Asset3D wStone;
     struct Asset3D bStone;
+    float stoneRadius;
 
     struct Viewer* viewer;
     struct Weiqi* weiqi;
