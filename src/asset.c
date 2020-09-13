@@ -23,7 +23,7 @@ int stone_create(struct Asset3D* stone, float radius,
                  float r, float g, float b) {
     struct Mesh sphere;
 
-    if (!make_uvsphere(&sphere, radius, 8, 8)) {
+    if (!make_uvsphere(&sphere, radius, 16, 16)) {
         fprintf(stderr, "Error: interface: can't create sphere\n");
         return 0;
     } else if (!(stone->va = vertex_array_new(&sphere))) {

@@ -8,6 +8,7 @@ int gtp_init(struct Player* player, FILE* in, FILE* out) {
     player->out = out;
     player->send_move = gtp_send_move;
     player->get_move = gtp_get_move;
+    player->reset = gtp_reset;
     return 1;
 }
 
@@ -59,5 +60,23 @@ int gtp_get_move(struct Player* player, enum WeiqiColor color,
         fprintf(stderr, "Error: format error from gtp client: %s\n", ans + 2);
         return 0;
     }
+    return 1;
+}
+
+static int gtp_is_happy(FILE* in) {
+    char ans[256];
+    if (!gtp_get(in, ans, sizeof(ans))) return 0;
+    if (ans[0] == '=') return 1;
+    fprintf(stderr, "Error: gtp not happy: %s\n", ans);
+    return 0;
+}
+
+int gtp_reset(struct Player* player) {
+    fprintf(player->out, "clear_board\n");
+    fflush(player->out);
+    if (!gtp_is_happy(player->in)) return 0;
+    fprintf(player->out, "boardsize %d\n", player->weiqi->boardSize);
+    fflush(player->out);
+    if (!gtp_is_happy(player->in)) return 0;
     return 1;
 }

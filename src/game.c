@@ -31,6 +31,8 @@ int game_register_move(struct GameContext* ctx, enum WeiqiColor color,
 }
 
 int game_run(struct GameContext* ctx) {
+    ctx->black.reset(&ctx->black);
+    ctx->white.reset(&ctx->white);
     while (1) {
         unsigned int row, col;
 

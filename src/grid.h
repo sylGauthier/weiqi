@@ -1,7 +1,7 @@
 #ifndef GRID_H
 #define GRID_H
 
-#define GRID_RES 512
+#define GRID_RES 1024
 
 #include <3dmr/render/texture.h>
 
