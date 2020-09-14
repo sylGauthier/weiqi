@@ -112,5 +112,8 @@ GLuint grid_gen(unsigned int boardSize, float scale) {
     }
     draw_grid(texBuf, boardSize, scale);
     draw_dots(texBuf, boardSize, scale);
-    return texture_load_from_uchar_buffer(texBuf, GRID_RES, GRID_RES, 3, 0);
+    if (!texture_load_from_uchar_buffer(texBuf, GRID_RES, GRID_RES, 3, 0)) return 0;
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    return 1;
 }
