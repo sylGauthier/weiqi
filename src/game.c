@@ -23,13 +23,6 @@ void game_free(struct GameContext* ctx) {
     if (ctx->white.out) fclose(ctx->white.out);
 }
 
-int game_register_move(struct GameContext* ctx, enum WeiqiColor color,
-                       unsigned int row, unsigned int col) {
-    if (!weiqi_move_is_valid(&ctx->weiqi, color, row, col)) return 0;
-    ctx->weiqi.board[row * ctx->weiqi.boardSize + col] = color;
-    return 1;
-}
-
 int game_run(struct GameContext* ctx) {
     ctx->black.reset(&ctx->black);
     ctx->white.reset(&ctx->white);
@@ -37,7 +30,7 @@ int game_run(struct GameContext* ctx) {
         unsigned int row, col;
 
         ctx->black.get_move(&ctx->black, W_BLACK, &row, &col);
-        if (!game_register_move(ctx, W_BLACK, row, col)) {
+        if (!weiqi_register_move(&ctx->weiqi, W_BLACK, row, col)) {
             fprintf(stderr, "Error: black tried to play an illegal move\n");
             return 0;
         }
@@ -49,7 +42,7 @@ int game_run(struct GameContext* ctx) {
         }
 
         ctx->white.get_move(&ctx->white, W_WHITE, &row, &col);
-        if (!game_register_move(ctx, W_WHITE, row, col)) {
+        if (!weiqi_register_move(&ctx->weiqi, W_WHITE, row, col)) {
             fprintf(stderr, "Error: white tried to play an illegal move\n");
             return 0;
         }

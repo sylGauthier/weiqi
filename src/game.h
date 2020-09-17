@@ -16,6 +16,4 @@ void game_free(struct GameContext* ctx);
 
 int game_run(struct GameContext* ctx);
 
-int game_register_move(struct GameContext* ctx, enum WeiqiColor color,
-                       unsigned int row, unsigned int col);
 #endif

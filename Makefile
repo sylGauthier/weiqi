@@ -12,8 +12,5 @@ all: weiqi
 weiqi: $(OBJECTS)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-objects:
-	mkdir objects
-
 clean:
 	rm -rf $(OBJECTS) weiqi
