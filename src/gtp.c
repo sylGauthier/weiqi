@@ -71,6 +71,16 @@ static int gtp_is_happy(FILE* in) {
     return 0;
 }
 
+#if 0
+static void gtp_showboard(struct Player* player) {
+    char ans[2048];
+    fprintf(player->out, "showboard\n");
+    fflush(player->out);
+    gtp_get(player->in, ans, sizeof(ans));
+    printf("%s\n", ans);
+}
+#endif
+
 int gtp_reset(struct Player* player) {
     fprintf(player->out, "clear_board\n");
     fflush(player->out);
@@ -78,5 +88,10 @@ int gtp_reset(struct Player* player) {
     fprintf(player->out, "boardsize %d\n", player->weiqi->boardSize);
     fflush(player->out);
     if (!gtp_is_happy(player->in)) return 0;
+    if (player->weiqi->handicap >= 2) {
+        fprintf(player->out, "fixed_handicap %d\n", player->weiqi->handicap);
+        fflush(player->out);
+        if (!gtp_is_happy(player->in)) return 0;
+    }
     return 1;
 }

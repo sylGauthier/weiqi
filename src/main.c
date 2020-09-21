@@ -77,7 +77,7 @@ void handle_sig_int(int sig) {
 
 void print_help(const char* cmd) {
     printf("%s [-w|--white <human|gnugo>] [-b|--black <human|gnugo>] "
-           "[-s|--size <size>]\n", cmd);
+           "[-s|--size <size>] [-h|--handicap <handicap>]\n", cmd);
 }
 
 int main(int argc, char** argv) {
@@ -129,6 +129,13 @@ int main(int argc, char** argv) {
             }
             prog.boardSize = strtol(argv[i + 1], NULL, 10);
             i++;
+        } else if (!strcmp(arg, "-h") || !strcmp(arg, "--handicap")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return -1;
+            }
+            prog.handicap = strtol(argv[i + 1], NULL, 10);
+            i++;
         } else {
             print_help(argv[0]);
             return -1;
@@ -142,7 +149,7 @@ int main(int argc, char** argv) {
     act.sa_handler = handle_sig_int;
     sigaction(SIGINT, &act, NULL);
 
-    if (       game_init(&ctx, prog.boardSize)
+    if (       game_init(&ctx, prog.boardSize, prog.handicap)
             && player_init(&ctx.white, prog.white)
             && player_init(&ctx.black, prog.black)) {
         game_run(&ctx);

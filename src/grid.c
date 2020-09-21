@@ -8,28 +8,6 @@
     (b)[3 * ((x) * GRID_RES + (y)) + 2] *= (s); \
 }
 
-/*
-static const char* spots[25][10] = {
-    {NULL}, {NULL}, {NULL}, {NULL}, {NULL},
-    { "B2", "B4", "D2", "D4", NULL},
-    { "C3", "C4", "D3", "D4", NULL},
-    { "C3", "C5", "E3", "E5", NULL},
-    { "C3", "F6", "F3", "F6", NULL},
-    { "C3", "C7", "E5", "G3", "G7", NULL},
-    { "C3", "C8", "H3", "H8", NULL},
-    { "C3", "C9", "F6", "J3", "J9", NULL},
-    { "D4", "D9", "J4", "J9", NULL},
-    { "D4", "D7", "D10", "G4", "G7", "G10", "K4", "K7", "K10", NULL},
-    { "D4", "D11", "L4", "L11", NULL},
-    { "D4", "D8", "D12", "H4", "H8", "H12", "M4", "M8", "M12", NULL},
-    { "D4", "D13", "N4", "N13", NULL},
-    { "D4", "D9", "D14", "J4", "J9", "J14", "O4", "O9", "O14", NULL},
-    { "D4", "D15", "P4", "P15", NULL},
-    { "D4", "D10", "D16", "K4", "K10", "K16", "Q4", "Q10", "Q16", NULL}
-    {NULL}, {NULL}, {NULL}, {NULL}, {NULL}, {NULL}
-};
-*/
-
 static float circle(int i, int j, int radius) {
     float a1 = ((float)i - 0.5) * ((float)i - 0.5)
              + ((float)j - 0.5) * ((float)j - 0.5);

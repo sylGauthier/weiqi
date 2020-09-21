@@ -10,18 +10,49 @@
 #define VERTICE_CLUSTER(w, r, c) VERTICE_ACCESS(w, clusters, r, c)
 #define VERTICE_LIB(w, r, c) VERTICE_ACCESS(w, liberties, r, c)
 
-int weiqi_init(struct Weiqi* weiqi, char s) {
+static void setup_handicap(struct Weiqi* weiqi) {
+    char h = weiqi->handicap;
+    char s = weiqi->boardSize - 1;
+    char ed;
+
+    if (h < 2) return;
+    ed = weiqi->boardSize <= 12 ? 2 : 3;
+    weiqi_register_move(weiqi, W_BLACK, ed, ed);
+    weiqi_register_move(weiqi, W_BLACK, s - ed, s - ed);
+    if (h >= 3) weiqi_register_move(weiqi, W_BLACK, s - ed, ed);
+    if (h >= 4) weiqi_register_move(weiqi, W_BLACK, ed, s - ed);
+    if (h % 2 && h >= 5) weiqi_register_move(weiqi, W_BLACK, s / 2, s / 2);
+    if (h >= 6) {
+        weiqi_register_move(weiqi, W_BLACK, s / 2, ed);
+        weiqi_register_move(weiqi, W_BLACK, s / 2, s - ed);
+    }
+    if (h >= 8) {
+        weiqi_register_move(weiqi, W_BLACK, ed, s / 2);
+        weiqi_register_move(weiqi, W_BLACK, s - ed, s / 2);
+    }
+}
+
+int weiqi_init(struct Weiqi* weiqi, char s, char h) {
+    char maxHandicap;
+
     weiqi->board = NULL;
     weiqi->liberties = NULL;
     weiqi->clusters = NULL;
+    if (s == 7) maxHandicap = 4;
+    else maxHandicap = 4 + (s % 2) * 5;
+
     if (s < 7 || s > 25) {
         fprintf(stderr, "Error: board size must be between 7 and 25\n");
+    } else if (h > maxHandicap) {
+        fprintf(stderr, "Error: handicap > max handicap (%d)\n", maxHandicap);
     } else if (!(weiqi->board = calloc(s * s * sizeof(char), 1))
             || !(weiqi->liberties = calloc(s * s * sizeof(char), 1))
             || !(weiqi->clusters = calloc(s * s * sizeof(void*), 1))) {
         fprintf(stderr, "Error: can't allocate memory for board\n");
     } else {
         weiqi->boardSize = s;
+        weiqi->handicap = h;
+        setup_handicap(weiqi);
         return 1;
     }
     free(weiqi->board);
