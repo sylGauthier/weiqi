@@ -11,7 +11,7 @@ struct GameContext {
     struct Interface ui;
 };
 
-int game_init(struct GameContext* ctx, char boardSize);
+int game_init(struct GameContext* ctx, char boardSize, char handicap);
 void game_free(struct GameContext* ctx);
 
 int game_run(struct GameContext* ctx);

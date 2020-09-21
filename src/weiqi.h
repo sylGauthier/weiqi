@@ -15,7 +15,7 @@ enum WeiqiColor {
 };
 
 struct Weiqi {
-    char boardSize;
+    char boardSize, handicap;
     char* board;
     char* liberties;
     struct StoneList** clusters;
@@ -24,7 +24,7 @@ struct Weiqi {
     unsigned int bcap;  /* stones captured by black */
 };
 
-int weiqi_init(struct Weiqi* wq, char boardSize);
+int weiqi_init(struct Weiqi* wq, char boardSize, char handicap);
 void weiqi_free(struct Weiqi* wq);
 
 int weiqi_move_is_valid(struct Weiqi* weiqi, enum WeiqiColor color,
