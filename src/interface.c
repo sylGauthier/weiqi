@@ -14,7 +14,8 @@ void update_node(struct Scene* scene, struct Node* n, void* data) {
         case NODE_SLIGHT:
             break;
         case NODE_CAMERA:
-            camera_buffer_object_update_view_and_position(&scene->camera, MAT_CONST_CAST(n->data.camera->view));
+            camera_buffer_object_update_view_and_position(&scene->camera,
+                    MAT_CONST_CAST(n->data.camera->view));
             break;
         default:;
     }
@@ -33,7 +34,6 @@ void resize_callback(struct Viewer* viewer, void* data) {
 
     uniform_buffer_send(&interface->scene.camera);
 }
-
 
 void key_callback(struct Viewer* viewer, int key, int scancode, int action,
                   int mods, void* data) {
@@ -64,20 +64,20 @@ static void render_stone(struct Interface* ui, enum WeiqiColor color,
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
     float zScale = 0.3;
-    struct Asset3D* stone;
+    struct Stone3D* stone;
 
     load_id4(model);
     load_id3(invNormal);
+    stone = color == W_WHITE ? &ui->wStone : &ui->bStone;
 
     model[3][0] = ui->board.gridScale * (col * (1. / (s - 1)) - 0.5);
     model[3][1] = ui->board.gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = ui->board.thickness / 2. + zScale * ui->stoneRadius;
+    model[3][2] = ui->board.thickness / 2. + zScale * stone->radius;
     model[2][2] = zScale;
 
-    stone = color == W_WHITE ? &ui->wStone : &ui->bStone;
-    material_use(stone->mat);
-    material_set_matrices(stone->mat, model, invNormal);
-    vertex_array_render(stone->va);
+    material_use(stone->geom.mat);
+    material_set_matrices(stone->geom.mat, model, invNormal);
+    vertex_array_render(stone->geom.va);
 }
 
 static void render_board(struct Interface* ui) {
@@ -104,14 +104,14 @@ static void render_board(struct Interface* ui) {
 void* run_interface(void* arg) {
     struct Interface* ui = arg;
     int sceneInit = 0;
-    float scale = 1. / 1.1;
+    float scale = 1. / 1.1, radius;
 
-    ui->stoneRadius = 1. / (2. * (float)ui->weiqi->boardSize) * scale;
+    radius = 1. / (2. * (float)ui->weiqi->boardSize) * scale;
     camera_projection(1., 30 / 360. * 2 * M_PI, 0.001, 1000.,
                       ui->camera.projection);
     asset_init(&ui->board.geom);
-    asset_init(&ui->wStone);
-    asset_init(&ui->bStone);
+    asset_init(&ui->wStone.geom);
+    asset_init(&ui->bStone.geom);
 
     if (!(ui->viewer = viewer_new(640, 640, "weiqi"))) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
@@ -120,8 +120,8 @@ void* run_interface(void* arg) {
     } else if (!board_create(&ui->board, ui->weiqi->boardSize, scale,
                              0.59, 0.5, 0.3)) {
         fprintf(stderr, "Error: interface: can't create board\n");
-    } else if (!stone_create(&ui->wStone, ui->stoneRadius, 1., 1., 1.)
-            || !stone_create(&ui->bStone, ui->stoneRadius, 0.1, 0.1, 0.1)) {
+    } else if (!stone_create(&ui->wStone, radius, 1., 1., 1.)
+            || !stone_create(&ui->bStone, radius, 0.1, 0.1, 0.1)) {
         fprintf(stderr, "Error: interface: can't create stones\n");
     } else if (    !(ui->camNode = malloc(sizeof(struct Node)))
                 || !(ui->camOrientation = malloc(sizeof(struct Node)))) {
@@ -154,8 +154,8 @@ void* run_interface(void* arg) {
     }
 
     asset_free(&ui->board.geom);
-    asset_free(&ui->wStone);
-    asset_free(&ui->bStone);
+    asset_free(&ui->wStone.geom);
+    asset_free(&ui->bStone.geom);
     if (ui->viewer) viewer_free(ui->viewer);
     if (sceneInit) scene_free(&ui->scene, NULL);
     pthread_exit(NULL);
@@ -179,11 +179,5 @@ void interface_free(struct Interface* ui) {
     pthread_join(ui->thread, NULL);
 }
 
-int interface_add_stone(struct Interface* ui, enum WeiqiColor color,
-                        unsigned int row, unsigned int col);
-
-int interface_del_stone(struct Interface* ui,
-                        unsigned int row, unsigned int col);
-
-int interface_get_stone(struct Interface* ui, enum WeiqiColor color,
-                        unsigned int* row, unsigned int* col);
+int interface_get_move(struct Interface* ui, enum WeiqiColor color,
+                       unsigned int* row, unsigned int* col);

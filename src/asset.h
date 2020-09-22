@@ -15,10 +15,15 @@ struct Board3D {
     float thickness;
 };
 
+struct Stone3D {
+    struct Asset3D geom;
+    float radius;
+};
+
 int board_create(struct Board3D* board, unsigned int size, float gridScale,
                  float r, float g, float b);
 
-int stone_create(struct Asset3D* stone, float radius,
+int stone_create(struct Stone3D* stone, float radius,
                  float r, float g, float b);
 
 void asset_init(struct Asset3D* asset);

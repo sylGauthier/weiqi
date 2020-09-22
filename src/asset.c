@@ -19,21 +19,22 @@ void asset_free(struct Asset3D* asset) {
     free(asset->matParams);
 }
 
-int stone_create(struct Asset3D* stone, float radius,
+int stone_create(struct Stone3D* stone, float radius,
                  float r, float g, float b) {
-    struct Mesh sphere;
+    struct Mesh s;
 
-    if (!make_uvsphere(&sphere, radius, 16, 16)) {
-        fprintf(stderr, "Error: interface: can't create sphere\n");
+    stone->radius = radius;
+    if (!make_uvsphere(&s, radius, 16, 16)) {
+        fprintf(stderr, "Error: interface: can't create s\n");
         return 0;
-    } else if (!(stone->va = vertex_array_new(&sphere))) {
+    } else if (!(stone->geom.va = vertex_array_new(&s))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
-    } else if (!(stone->matParams = solid_material_params_new())) {
+    } else if (!(stone->geom.matParams = solid_material_params_new())) {
         fprintf(stderr, "Error: interface: can't create solid params\n");
     } else {
-        material_param_set_vec3_elems(&stone->matParams->color, r, g, b);
-        stone->mat = solid_material_new(sphere.flags, stone->matParams);
-        return !!stone->mat;
+        material_param_set_vec3_elems(&stone->geom.matParams->color, r, g, b);
+        stone->geom.mat = solid_material_new(s.flags, stone->geom.matParams);
+        return !!stone->geom.mat;
     }
     return 0;
 }
