@@ -50,8 +50,8 @@ static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
 }
 
 int game_run(struct GameContext* ctx) {
-    ctx->black.reset(&ctx->black);
-    ctx->white.reset(&ctx->white);
+    if (!ctx->black.reset(&ctx->black)) return 0;
+    if (!ctx->white.reset(&ctx->white)) return 0;
 
     if (!ctx->weiqi.handicap && !play_turn(ctx, W_BLACK)) return 0;
     while (1) {
