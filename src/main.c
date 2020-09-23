@@ -37,12 +37,8 @@ int local_gtp_engine_init(struct Player* player,
     pid = pipe_proc(cmd, argv, &out, &in);
 
     if (pid < 0) {
-        fprintf(stderr,
-                "I have failed as a child and will end myself peacefully\n");
-        return 0;
+        exit(-1);
     } else if (pid == 0) {
-        fprintf(stderr,
-                "I have failed as a father and will end myself peacefully\n");
         return 0;
     }
     gtp_init(player, in, out);

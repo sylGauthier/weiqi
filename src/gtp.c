@@ -3,15 +3,6 @@
 #include "gtp.h"
 #include "utils.h"
 
-int gtp_init(struct Player* player, FILE* in, FILE* out) {
-    player->in = in;
-    player->out = out;
-    player->send_move = gtp_send_move;
-    player->get_move = gtp_get_move;
-    player->reset = gtp_reset;
-    return 1;
-}
-
 static int gtp_get(FILE* in, char* buf, unsigned int bufSize) {
     char end[2048];
     while (bufSize && fgets(buf, bufSize, in)
@@ -28,6 +19,42 @@ static int gtp_get(FILE* in, char* buf, unsigned int bufSize) {
     /* Removing last empty line */
     buf[0] = '\0';
     return bufSize;
+}
+
+static int gtp_is_happy(FILE* in) {
+    char ans[256]= {0};
+    if (!gtp_get(in, ans, sizeof(ans))) return 0;
+    if (ans[0] == '=') return 1;
+    return 0;
+}
+
+static int check_version(struct Player* gtp) {
+    char ans[16] = {0};
+    fprintf(gtp->out, "protocol_version\n");
+    fflush(gtp->out);
+    gtp_get(gtp->in, ans, sizeof(ans) - 1);
+    if (!strlen(ans)) return -1;
+    if (!strcmp(ans, "= 2\n")) return 1;
+    return 0;
+}
+
+int gtp_init(struct Player* player, FILE* in, FILE* out) {
+    int err;
+
+    player->in = in;
+    player->out = out;
+    player->send_move = gtp_send_move;
+    player->get_move = gtp_get_move;
+    player->reset = gtp_reset;
+    err = check_version(player);
+    if (err < 0) {
+        fprintf(stderr, "Error: GTP: engine offline\n");
+        return 0;
+    } else if (!err) {
+        fprintf(stderr, "Error: GTP: invalid version\n");
+        return 0;
+    }
+    return 1;
 }
 
 int gtp_send_move(struct Player* player, enum WeiqiColor color,
@@ -61,14 +88,6 @@ int gtp_get_move(struct Player* player, enum WeiqiColor color,
         return 0;
     }
     return 1;
-}
-
-static int gtp_is_happy(FILE* in) {
-    char ans[256];
-    if (!gtp_get(in, ans, sizeof(ans))) return 0;
-    if (ans[0] == '=') return 1;
-    fprintf(stderr, "Error: gtp not happy: %s\n", ans);
-    return 0;
 }
 
 #if 0
