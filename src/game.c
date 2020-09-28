@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "game.h"
+#include "utils.h"
 
 int game_init(struct GameContext* ctx, char boardSize, char handicap) {
     if (!(weiqi_init(&ctx->weiqi, boardSize, handicap))) {
@@ -26,6 +27,7 @@ void game_free(struct GameContext* ctx) {
 static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
     struct Player *p1, *p2;
     unsigned int row, col;
+    char move[4];
 
     if (color == W_WHITE) {
         p1 = &ctx->white;
@@ -46,6 +48,9 @@ static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
                 color == W_WHITE ? "black" : "white");
         return 0;
     }
+
+    move_to_str(move, row, col);
+    printf("%s: %s\n", color == W_WHITE ? "white" : "black", move);
     return 1;
 }
 

@@ -1,5 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 
 #include <3dmr/render/camera_buffer_object.h>
 
@@ -40,6 +45,54 @@ void key_callback(struct Viewer* viewer, int key, int scancode, int action,
     return;
 }
 
+static int update_cursor_pos(struct Interface* ui, double x, double y) {
+    Vec4 v = {0, 0, -1, 1}, res;
+    Vec3 vec, pos, boardPos;
+    Mat4 invView;
+    float h = ui->board.thickness / 2;
+    float s = ui->weiqi->boardSize - 1;
+
+    invert4m(invView, MAT_CONST_CAST(ui->camera.view));
+    v[0] = - x * v[2] / ui->camera.projection[0][0];
+    v[1] = - y * v[2] / ui->camera.projection[1][1];
+    mul4mv(res, MAT_CONST_CAST(invView), v);
+
+    pos[0] = invView[3][0];
+    pos[1] = invView[3][1];
+    pos[2] = invView[3][2];
+
+    vec[0] = res[0] - pos[0];
+    vec[1] = res[1] - pos[1];
+    vec[2] = res[2] - pos[2];
+
+    if (vec[2] == 0.) return 0;
+    if (vec[0] == 0.) boardPos[0] = res[0];
+    else boardPos[0] = vec[0] * (h - pos[2]) / vec[2] + pos[0];
+    if (vec[1] == 0.) boardPos[1] = res[1];
+    else boardPos[1] = vec[1] * (h - pos[2]) / vec[2] + pos[1];
+    boardPos[2] = h;
+
+    boardPos[0] = boardPos[0] / ui->board.gridScale + 0.5;
+    boardPos[1] = boardPos[1] / ui->board.gridScale + 0.5;
+    if (       boardPos[0] >= 0. && boardPos[0] <= 1.
+            && boardPos[1] >= 0. && boardPos[1] <= 1.) {
+        ui->cursorPos[0] = (boardPos[0] + 1. / (2. * (float) s)) * s;
+        ui->cursorPos[1] = (boardPos[1] + 1. / (2. * (float) s)) * s;
+    }
+    return 1;
+}
+
+void mouse_callback(struct Viewer* viewer, int button, int action, int mods,
+                    void* data) {
+    struct Interface* ui = data;
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS
+            && ui->status == W_UI_SELECT) {
+        memcpy(ui->selectPos, ui->cursorPos, sizeof(ui->selectPos));
+        ui->status = W_UI_RUN;
+    }
+}
+
 void cursor_callback(struct Viewer* viewer, double xpos, double ypos,
                      double dx, double dy, int bl, int bm, int br,
                      void* data) {
@@ -47,7 +100,9 @@ void cursor_callback(struct Viewer* viewer, double xpos, double ypos,
     Vec3 axisZ = {0, 0, 1};
     Vec3 axisX = {1, 0, 0};
 
-    if (bl) {
+    update_cursor_pos(ui, 2 * xpos / viewer->width - 1,
+                      1. - 2 * ypos / viewer->height);
+    if (br) {
         node_rotate(ui->camOrientation, axisZ, -dx / viewer->width);
         node_slew(ui->camOrientation, axisX, -dy / viewer->width);
     }
@@ -80,6 +135,25 @@ static void render_stone(struct Interface* ui, enum WeiqiColor color,
     vertex_array_render(stone->geom.va);
 }
 
+static void render_pointer(struct Interface* ui) {
+    Mat4 model;
+    Mat3 invNormal;
+    float s = ui->weiqi->boardSize;
+    unsigned int col = ui->cursorPos[0], row = ui->cursorPos[1];
+
+    load_id4(model);
+    load_id3(invNormal);
+
+    model[3][0] = ui->board.gridScale * (col * (1. / (s - 1)) - 0.5);
+    model[3][1] = ui->board.gridScale * (row * (1. / (s - 1)) - 0.5);
+    model[3][2] = ui->board.thickness / 2.;
+    model[2][2] = 1.;
+
+    material_use(ui->pointer.mat);
+    material_set_matrices(ui->pointer.mat, model, invNormal);
+    vertex_array_render(ui->pointer.va);
+}
+
 static void render_board(struct Interface* ui) {
     Mat4 model;
     Mat3 invNormal;
@@ -99,6 +173,7 @@ static void render_board(struct Interface* ui) {
             }
         }
     }
+    render_pointer(ui);
 }
 
 void* run_interface(void* arg) {
@@ -112,6 +187,7 @@ void* run_interface(void* arg) {
     asset_init(&ui->board.geom);
     asset_init(&ui->wStone.geom);
     asset_init(&ui->bStone.geom);
+    asset_init(&ui->pointer);
 
     if (!(ui->viewer = viewer_new(640, 640, "weiqi"))) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
@@ -120,6 +196,8 @@ void* run_interface(void* arg) {
     } else if (!board_create(&ui->board, ui->weiqi->boardSize, scale,
                              0.59, 0.5, 0.3)) {
         fprintf(stderr, "Error: interface: can't create board\n");
+    } else if (!pointer_create(&ui->pointer, radius / 2.)) {
+        fprintf(stderr, "Error: interface: can't create pointer\n");
     } else if (!stone_create(&ui->wStone, radius, 1., 1., 1.)
             || !stone_create(&ui->bStone, radius, 0.1, 0.1, 0.1)) {
         fprintf(stderr, "Error: interface: can't create stones\n");
@@ -131,6 +209,7 @@ void* run_interface(void* arg) {
         ui->viewer->resize_callback = resize_callback;
         ui->viewer->key_callback = key_callback;
         ui->viewer->cursor_callback = cursor_callback;
+        ui->viewer->mouse_callback = mouse_callback;
         ui->viewer->close_callback = close_callback;
 
         {
@@ -143,7 +222,7 @@ void* run_interface(void* arg) {
             node_translate(ui->camNode, t);
         }
 
-        while (ui->running) {
+        while (ui->status != W_UI_QUIT) {
             viewer_process_events(ui->viewer);
             scene_update_nodes(&ui->scene, update_node, NULL);
             uniform_buffer_send(&ui->scene.lights);
@@ -156,6 +235,7 @@ void* run_interface(void* arg) {
     asset_free(&ui->board.geom);
     asset_free(&ui->wStone.geom);
     asset_free(&ui->bStone.geom);
+    asset_free(&ui->pointer);
     if (ui->viewer) viewer_free(ui->viewer);
     if (sceneInit) scene_free(&ui->scene, NULL);
     pthread_exit(NULL);
@@ -164,7 +244,11 @@ void* run_interface(void* arg) {
 int interface_init(struct Interface* ui, struct Weiqi* weiqi) {
     ui->viewer = NULL;
     ui->weiqi = weiqi;
-    ui->running = 1;
+    ui->status = W_UI_RUN;
+    ui->cursorPos[0] = 0;
+    ui->cursorPos[1] = 0;
+    ui->selectPos[0] = 0;
+    ui->selectPos[1] = 0;
 
     if (pthread_create(&ui->thread, NULL, run_interface, ui) != 0) {
         fprintf(stderr, "Error: interface: couldn't start thread\n");
@@ -175,9 +259,21 @@ int interface_init(struct Interface* ui, struct Weiqi* weiqi) {
 }
 
 void interface_free(struct Interface* ui) {
-    ui->running = 0;
+    ui->status = W_UI_QUIT;
     pthread_join(ui->thread, NULL);
 }
 
 int interface_get_move(struct Interface* ui, enum WeiqiColor color,
-                       unsigned int* row, unsigned int* col);
+                       unsigned int* row, unsigned int* col) {
+    ui->status = W_UI_SELECT;
+
+    while (ui->status == W_UI_SELECT) {
+        struct timespec t;
+        t.tv_nsec = 10000000;
+        t.tv_sec = 0;
+        nanosleep(&t, NULL);
+    }
+    *col = ui->selectPos[0];
+    *row = ui->selectPos[1];
+    return 1;
+}

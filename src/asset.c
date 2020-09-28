@@ -25,8 +25,7 @@ int stone_create(struct Stone3D* stone, float radius,
 
     stone->radius = radius;
     if (!make_uvsphere(&s, radius, 16, 16)) {
-        fprintf(stderr, "Error: interface: can't create s\n");
-        return 0;
+        fprintf(stderr, "Error: interface: can't create sphere\n");
     } else if (!(stone->geom.va = vertex_array_new(&s))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
     } else if (!(stone->geom.matParams = solid_material_params_new())) {
@@ -47,7 +46,6 @@ int board_create(struct Board3D* board, unsigned int size, float gridScale,
     board->thickness = 0.01;
     if (!make_box(&box, 1., 1., board->thickness)) {
         fprintf(stderr, "Error: interface: can't create box\n");
-        return 0;
     } else if (!(board->geom.va = vertex_array_new(&box))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
     } else if (!(board->geom.matParams = solid_material_params_new())) {
@@ -59,6 +57,23 @@ int board_create(struct Board3D* board, unsigned int size, float gridScale,
         board->geom.mat = solid_material_new(box.flags, board->geom.matParams);
         board->gridScale = gridScale;
         return !!board->geom.mat;
+    }
+    return 0;
+}
+
+int pointer_create(struct Asset3D* pointer, float size) {
+    struct Mesh cube;
+
+    if (!make_box(&cube, size, size, size)) {
+        fprintf(stderr, "Error: interface: can't create cursor\n");
+    } else if (!(pointer->va = vertex_array_new(&cube))) {
+        fprintf(stderr, "Error: interface: can't create vertex array\n");
+    } else if (!(pointer->matParams = solid_material_params_new())) {
+        fprintf(stderr, "Error: interface: can't create solid params\n");
+    } else {
+        material_param_set_vec3_elems(&pointer->matParams->color, 0, 0, 0);
+        pointer->mat = solid_material_new(cube.flags, pointer->matParams);
+        return !!pointer->mat;
     }
     return 0;
 }
