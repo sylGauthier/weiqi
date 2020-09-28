@@ -48,7 +48,7 @@ int local_gtp_engine_init(struct Player* player,
 int player_init(struct Player* player, enum PlayerType type) {
     switch (type) {
         case W_HUMAN:
-            if (!human_init(player)) {
+            if (!human_init(player, &ctx.ui)) {
                 fprintf(stderr, "human player init failed\n");
                 return 0;
             }

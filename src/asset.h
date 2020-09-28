@@ -26,6 +26,8 @@ int board_create(struct Board3D* board, unsigned int size, float gridScale,
 int stone_create(struct Stone3D* stone, float radius,
                  float r, float g, float b);
 
+int pointer_create(struct Asset3D* pointer, float size);
+
 void asset_init(struct Asset3D* asset);
 void asset_free(struct Asset3D* asset);
 
