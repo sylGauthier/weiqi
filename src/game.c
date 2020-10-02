@@ -36,7 +36,9 @@ static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
         p1 = &ctx->black;
         p2 = &ctx->white;
     }
-    p1->get_move(p1, color, &row, &col);
+    if (!p1->get_move(p1, color, &row, &col)) {
+        return 0;
+    }
     if (!weiqi_register_move(&ctx->weiqi, color, row, col)) {
         fprintf(stderr, "Error: %s tried to play an illegal move\n",
                 color == W_WHITE ? "white" : "black");
@@ -59,7 +61,7 @@ int game_run(struct GameContext* ctx) {
     if (!ctx->white.reset(&ctx->white)) return 0;
 
     if (!ctx->weiqi.handicap && !play_turn(ctx, W_BLACK)) return 0;
-    while (1) {
+    while (ctx->ui.status != W_UI_QUIT) {
         if (!play_turn(ctx, W_WHITE)) return 0;
         if (!play_turn(ctx, W_BLACK)) return 0;
     }

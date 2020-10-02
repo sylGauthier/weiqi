@@ -110,6 +110,9 @@ void cursor_callback(struct Viewer* viewer, double xpos, double ypos,
 }
 
 void close_callback(struct Viewer* viewer, void* data) {
+    struct Interface* ui = data;
+
+    ui->status = W_UI_QUIT;
     return;
 }
 
@@ -275,5 +278,5 @@ int interface_get_move(struct Interface* ui, enum WeiqiColor color,
     }
     *col = ui->selectPos[0];
     *row = ui->selectPos[1];
-    return 1;
+    return ui->status;
 }

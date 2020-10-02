@@ -22,6 +22,7 @@ void asset_free(struct Asset3D* asset) {
 int stone_create(struct Stone3D* stone, float radius,
                  float r, float g, float b) {
     struct Mesh s;
+    int ok = 0;
 
     stone->radius = radius;
     if (!make_uvsphere(&s, radius, 16, 16)) {
@@ -33,15 +34,22 @@ int stone_create(struct Stone3D* stone, float radius,
     } else {
         material_param_set_vec3_elems(&stone->geom.matParams->color, r, g, b);
         stone->geom.mat = solid_material_new(s.flags, stone->geom.matParams);
-        return !!stone->geom.mat;
+        ok = !!stone->geom.mat;
     }
-    return 0;
+    mesh_free(&s);
+    if (!ok) {
+        free(stone->geom.mat);
+        free(stone->geom.matParams);
+        vertex_array_free(stone->geom.va);
+    }
+    return ok;
 }
 
 int board_create(struct Board3D* board, unsigned int size, float gridScale,
                  float r, float g, float b) {
     struct Mesh box;
     GLuint tex;
+    int ok = 0;
 
     board->thickness = 0.01;
     if (!make_box(&box, 1., 1., board->thickness)) {
@@ -56,13 +64,20 @@ int board_create(struct Board3D* board, unsigned int size, float gridScale,
         material_param_set_vec3_texture(&board->geom.matParams->color, tex);
         board->geom.mat = solid_material_new(box.flags, board->geom.matParams);
         board->gridScale = gridScale;
-        return !!board->geom.mat;
+        ok = !!board->geom.mat;
     }
-    return 0;
+    mesh_free(&box);
+    if (!ok) {
+        free(board->geom.mat);
+        free(board->geom.matParams);
+        vertex_array_free(board->geom.va);
+    }
+    return ok;
 }
 
 int pointer_create(struct Asset3D* pointer, float size) {
     struct Mesh cube;
+    int ok = 0;
 
     if (!make_box(&cube, size, size, size)) {
         fprintf(stderr, "Error: interface: can't create cursor\n");
@@ -73,7 +88,13 @@ int pointer_create(struct Asset3D* pointer, float size) {
     } else {
         material_param_set_vec3_elems(&pointer->matParams->color, 0, 0, 0);
         pointer->mat = solid_material_new(cube.flags, pointer->matParams);
-        return !!pointer->mat;
+        ok = !!pointer->mat;
     }
-    return 0;
+    mesh_free(&cube);
+    if (!ok) {
+        free(pointer->mat);
+        free(pointer->matParams);
+        vertex_array_free(pointer->va);
+    }
+    return ok;
 }

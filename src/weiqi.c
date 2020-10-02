@@ -61,7 +61,30 @@ int weiqi_init(struct Weiqi* weiqi, char s, char h) {
     return 0;
 }
 
+static void free_cluster(struct Weiqi* weiqi, struct StoneList* cluster) {
+    while (cluster) {
+        struct StoneList* tmp = cluster->next;
+        VERTICE_CLUSTER(weiqi, cluster->row, cluster->col) = NULL;
+        free(cluster);
+        cluster = tmp;
+    }
+}
+
+static void free_clusters(struct Weiqi* weiqi) {
+    unsigned int row, col;
+
+    for (row = 0; row < weiqi->boardSize; row++) {
+        for (col = 0; col < weiqi->boardSize; col++) {
+            struct StoneList* cur = VERTICE_CLUSTER(weiqi, row, col);
+
+            free_cluster(weiqi, cur);
+        }
+    }
+}
+
 void weiqi_free(struct Weiqi* weiqi) {
+    free_clusters(weiqi);
+
     free(weiqi->board);
     free(weiqi->liberties);
     free(weiqi->clusters);
