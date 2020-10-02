@@ -22,8 +22,10 @@ int human_get_move(struct Player* player, enum WeiqiColor color,
     char ok = 0;
 
     while (!ok) {
-        interface_get_move(player->data, color, row, col);
-        if (!weiqi_move_is_valid(player->weiqi, color, *row, *col)) {
+        ok = interface_get_move(player->data, color, row, col);
+        if (!ok) {
+            return 0;
+        } else if (!weiqi_move_is_valid(player->weiqi, color, *row, *col)) {
             fprintf(stderr, "invalid move\n");
         } else {
             ok = 1;
