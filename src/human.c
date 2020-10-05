@@ -3,12 +3,11 @@
 #include "human.h"
 
 int human_init(struct Player* player, struct Interface* ui) {
-    player->in = NULL;
-    player->out = NULL;
     player->data = ui;
     player->send_move = human_send_move;
     player->get_move = human_get_move;
     player->reset = human_reset;
+    player->free = NULL;
     return 1;
 }
 
@@ -19,11 +18,11 @@ int human_send_move(struct Player* player, enum WeiqiColor color,
 
 int human_get_move(struct Player* player, enum WeiqiColor color,
                    unsigned int* row, unsigned int* col) {
-    char ok = 0;
+    char ok = 0, status = 0;
 
     while (!ok) {
-        ok = interface_get_move(player->data, color, row, col);
-        if (!ok) {
+        status = interface_get_move(player->data, color, row, col);
+        if (status == W_UI_QUIT) {
             return 0;
         } else if (!weiqi_move_is_valid(player->weiqi, color, *row, *col)) {
             fprintf(stderr, "invalid move\n");
