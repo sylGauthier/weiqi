@@ -1,7 +1,13 @@
 #include <string.h>
+#include <stdlib.h>
 
 #include "gtp.h"
 #include "utils.h"
+#include "pipe_proc.h"
+
+struct GTPConnection {
+    FILE *in, *out;
+};
 
 static int gtp_get(FILE* in, char* buf, unsigned int bufSize) {
     char end[2048];
@@ -30,43 +36,86 @@ static int gtp_is_happy(FILE* in) {
 
 static int check_version(struct Player* gtp) {
     char ans[16] = {0};
-    fprintf(gtp->out, "protocol_version\n");
-    fflush(gtp->out);
-    gtp_get(gtp->in, ans, sizeof(ans) - 1);
+    struct GTPConnection* c = gtp->data;
+    fprintf(c->out, "protocol_version\n");
+    fflush(c->out);
+    gtp_get(c->in, ans, sizeof(ans) - 1);
     if (!strlen(ans)) return -1;
     if (!strcmp(ans, "= 2\n")) return 1;
     return 0;
 }
 
 int gtp_init(struct Player* player, FILE* in, FILE* out) {
-    int err;
+    int err, ok = 1;
+    struct GTPConnection* c;
 
-    player->in = in;
-    player->out = out;
+    if (!(c = malloc(sizeof(struct GTPConnection)))) {
+        fprintf(stderr, "Error: can't create GTP data\n");
+        return 0;
+    }
+    c->in = in;
+    c->out = out;
+    player->data = c;
     player->send_move = gtp_send_move;
     player->get_move = gtp_get_move;
     player->reset = gtp_reset;
+    player->free = gtp_free;
     err = check_version(player);
     if (err < 0) {
         fprintf(stderr, "Error: GTP: engine offline\n");
-        return 0;
+        ok = 0;
     } else if (!err) {
         fprintf(stderr, "Error: GTP: invalid version\n");
+        ok = 0;
+    }
+    if (!ok) {
+        free(c);
+        player->data = NULL;
+    }
+    return ok;
+}
+
+int gtp_local_engine_init(struct Player* player, const char* cmd) {
+    FILE *in, *out;
+    int pid, i, ok = 1;
+    char** splitcmd;
+
+    if (!(splitcmd = split_cmd(cmd))) {
+        fprintf(stderr, "Error: can't split command\n");
         return 0;
     }
-    return 1;
+
+    printf("local go engine (GTP):");
+    for (i = 0; splitcmd[i]; i++) {
+        printf(" %s", splitcmd[i]);
+    }
+    printf("\n");
+
+    pid = pipe_proc(splitcmd[0], splitcmd, &out, &in);
+
+    if (pid < 0) {
+        exit(-1);
+    } else if (pid == 0) {
+        ok = 0;
+    } else {
+        ok = gtp_init(player, in, out);
+    }
+    free(splitcmd[0]);
+    free(splitcmd);
+    return ok;
 }
 
 int gtp_send_move(struct Player* player, enum WeiqiColor color,
                   unsigned int row, unsigned int col) {
     char move[4] = {0};
     char ans[2048];
+    struct GTPConnection* c = player->data;
 
     if (!move_to_str(move, row, col)) return W_FORMAT_ERROR;
-    fprintf(player->out, "play %s %s\n",
+    fprintf(c->out, "play %s %s\n",
             color == W_WHITE ? "white" : "black", move);
-    fflush(player->out);
-    gtp_get(player->in, ans, sizeof(ans));
+    fflush(c->out);
+    gtp_get(c->in, ans, sizeof(ans));
     if (ans[0] != '=') return W_ILLEGAL_MOVE;
     return W_NO_ERROR;
 }
@@ -74,10 +123,11 @@ int gtp_send_move(struct Player* player, enum WeiqiColor color,
 int gtp_get_move(struct Player* player, enum WeiqiColor color,
                  unsigned int* row, unsigned int* col) {
     char ans[2048];
-    fprintf(player->out, "genmove %s\n",
+    struct GTPConnection* c = player->data;
+    fprintf(c->out, "genmove %s\n",
             color == W_WHITE ? "white" : "black");
-    fflush(player->out);
-    gtp_get(player->in, ans, sizeof(ans));
+    fflush(c->out);
+    gtp_get(c->in, ans, sizeof(ans));
     if (strlen(ans) < 4 || strncmp(ans, "= ", 2)) {
         fprintf(stderr, "Error: gtp: genmove returned error: %s\n", ans);
         return 0;
@@ -101,16 +151,26 @@ static void gtp_showboard(struct Player* player) {
 #endif
 
 int gtp_reset(struct Player* player) {
-    fprintf(player->out, "clear_board\n");
-    fflush(player->out);
-    if (!gtp_is_happy(player->in)) return 0;
-    fprintf(player->out, "boardsize %d\n", player->weiqi->boardSize);
-    fflush(player->out);
-    if (!gtp_is_happy(player->in)) return 0;
+    struct GTPConnection* c = player->data;
+    fprintf(c->out, "clear_board\n");
+    fflush(c->out);
+    if (!gtp_is_happy(c->in)) return 0;
+    fprintf(c->out, "boardsize %d\n", player->weiqi->boardSize);
+    fflush(c->out);
+    if (!gtp_is_happy(c->in)) return 0;
     if (player->weiqi->handicap >= 2) {
-        fprintf(player->out, "fixed_handicap %d\n", player->weiqi->handicap);
-        fflush(player->out);
-        if (!gtp_is_happy(player->in)) return 0;
+        fprintf(c->out, "fixed_handicap %d\n", player->weiqi->handicap);
+        fflush(c->out);
+        if (!gtp_is_happy(c->in)) return 0;
     }
     return 1;
+}
+
+void gtp_free(struct Player* player) {
+    struct GTPConnection* c = player->data;
+    if (c) {
+        if (c->in) fclose(c->in);
+        if (c->out) fclose(c->out);
+        free(player->data);
+    }
 }

@@ -6,15 +6,16 @@
 #include "weiqi.h"
 
 struct Player {
-    FILE *in, *out;
     struct Weiqi* weiqi;
-    void* data;
 
     int (*send_move)(struct Player* player, enum WeiqiColor color,
                      unsigned int row, unsigned int col);
     int (*get_move)(struct Player* player, enum WeiqiColor color,
                     unsigned int* row, unsigned int* col);
     int (*reset)(struct Player* player);
+    void (*free)(struct Player* player);
+
+    void* data;
 };
 
 #endif

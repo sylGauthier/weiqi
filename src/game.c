@@ -18,10 +18,8 @@ int game_init(struct GameContext* ctx, char boardSize, char handicap) {
 void game_free(struct GameContext* ctx) {
     interface_free(&ctx->ui);
     weiqi_free(&ctx->weiqi);
-    if (ctx->black.in) fclose(ctx->black.in);
-    if (ctx->black.out) fclose(ctx->black.out);
-    if (ctx->white.in) fclose(ctx->white.in);
-    if (ctx->white.out) fclose(ctx->white.out);
+    if (ctx->white.free) ctx->white.free(&ctx->white);
+    if (ctx->black.free) ctx->black.free(&ctx->black);
 }
 
 static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
