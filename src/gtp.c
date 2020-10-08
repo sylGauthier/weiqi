@@ -154,14 +154,23 @@ int gtp_reset(struct Player* player) {
     struct GTPConnection* c = player->data;
     fprintf(c->out, "clear_board\n");
     fflush(c->out);
-    if (!gtp_is_happy(c->in)) return 0;
+    if (!gtp_is_happy(c->in)) {
+        fprintf(stderr, "Error: GTP: can't clear board\n");
+        return 0;
+    }
     fprintf(c->out, "boardsize %d\n", player->weiqi->boardSize);
     fflush(c->out);
-    if (!gtp_is_happy(c->in)) return 0;
+    if (!gtp_is_happy(c->in)) {
+        fprintf(stderr, "Error: GTP: engine doesn't accept this board size\n");
+        return 0;
+    }
     if (player->weiqi->handicap >= 2) {
         fprintf(c->out, "fixed_handicap %d\n", player->weiqi->handicap);
         fflush(c->out);
-        if (!gtp_is_happy(c->in)) return 0;
+        if (!gtp_is_happy(c->in)) {
+            fprintf(stderr, "Error: GTP: engine doesn't accept handicaps\n");
+            return 0;
+        }
     }
     return 1;
 }
