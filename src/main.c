@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
     if (       prog_load_defaults(&prog)
             && prog_parse_args(&prog, argc, argv)
             && prog_init(&prog)) {
-        game_run(&prog.ctx);
+        ok = game_run(&prog.ctx);
     } else {
         ok = 0;
     }
