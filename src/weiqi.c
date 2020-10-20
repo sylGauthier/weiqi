@@ -38,6 +38,7 @@ int weiqi_init(struct Weiqi* weiqi, char s, char h) {
     weiqi->board = NULL;
     weiqi->liberties = NULL;
     weiqi->clusters = NULL;
+    weiqi->history = NULL;
     if (s == 7) maxHandicap = 4;
     else maxHandicap = 4 + (s % 2) * 5;
 
@@ -82,12 +83,21 @@ static void free_clusters(struct Weiqi* weiqi) {
     }
 }
 
+static void free_history(struct Move* history) {
+    while (history) {
+        void* tmp = history->prev;
+        free(history);
+        history = tmp;
+    }
+}
+
 void weiqi_free(struct Weiqi* weiqi) {
     free_clusters(weiqi);
 
     free(weiqi->board);
     free(weiqi->liberties);
     free(weiqi->clusters);
+    free_history(weiqi->history);
 }
 
 static int count_liberties(struct Weiqi* w, struct StoneList* cluster) {
@@ -232,6 +242,25 @@ static void del_cluster(struct Weiqi* weiqi, struct StoneList* cluster) {
     }
 }
 
+static int history_push(struct Move** hist, enum WeiqiColor color,
+                        unsigned int row, unsigned int col) {
+    struct Move* new;
+
+    if (!(new = malloc(sizeof(*new)))) {
+        fprintf(stderr, "Error: can't create new history entry\n");
+        return 0;
+    }
+    new->color = color;
+    new->action = W_PLAY;
+    new->row = row;
+    new->col = col;
+    new->next = NULL;
+    new->prev = *hist;
+    if (*hist) (*hist)->next = new;
+    *hist = new;
+    return 1;
+}
+
 int weiqi_register_move(struct Weiqi* weiqi, enum WeiqiColor color,
                         unsigned int row, unsigned int col) {
     struct StoneList *friends[4] = {NULL}, *enemies[4] = {NULL}, *new = NULL;
@@ -257,5 +286,5 @@ int weiqi_register_move(struct Weiqi* weiqi, enum WeiqiColor color,
             del_cluster(weiqi, enemies[i]);
         }
     }
-    return 1;
+    return history_push(&weiqi->history, color, row, col);
 }

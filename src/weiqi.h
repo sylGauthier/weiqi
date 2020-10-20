@@ -4,7 +4,6 @@
 enum WeiqiError {
     W_NO_ERROR,
     W_ILLEGAL_MOVE,
-    W_PASS,
     W_FORMAT_ERROR
 };
 
@@ -14,11 +13,26 @@ enum WeiqiColor {
     W_WHITE = 2
 };
 
+enum MoveAction {
+    W_PLAY,
+    W_PASS
+};
+
+struct Move {
+    enum WeiqiColor color;
+    enum MoveAction action;
+    unsigned int row, col;
+
+    struct Move* prev;
+    struct Move* next;
+};
+
 struct Weiqi {
     char boardSize, handicap;
     char* board;
     char* liberties;
     struct StoneList** clusters;
+    struct Move* history;
 
     unsigned int wcap;  /* stones captured by white */
     unsigned int bcap;  /* stones captured by black */
