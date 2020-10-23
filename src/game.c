@@ -30,7 +30,9 @@ void game_free(struct GameContext* ctx) {
 static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
     struct Player *p1, *p2;
     unsigned int row, col;
-    char move[4];
+    char move[5];
+    enum MoveAction action;
+    enum WeiqiError err;
 
     if (color == W_WHITE) {
         p1 = &ctx->white;
@@ -39,23 +41,25 @@ static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
         p1 = &ctx->black;
         p2 = &ctx->white;
     }
-    if (!p1->get_move(p1, color, &row, &col)) {
-        return 0;
+    if (!p1->get_move(p1, color, &action, &row, &col)) {
+        return W_ERROR;
     }
-    if (!weiqi_register_move(&ctx->weiqi, color, row, col)) {
+    if ((err = weiqi_register_move(&ctx->weiqi, color, action, row, col))
+               == W_ERROR) {
         fprintf(stderr, "Error: %s tried to play an illegal move\n",
                 color == W_WHITE ? "white" : "black");
-        return 0;
+        return W_ERROR;
     }
-    if (p2->send_move(p2, color, row, col) != W_NO_ERROR) {
+    if (p2->send_move(p2, color, action, row, col) != W_NO_ERROR) {
         fprintf(stderr, "Error: %s doesn't like our move :(\n"
                 "We can't agree so let's quit here\n",
                 color == W_WHITE ? "black" : "white");
-        return 0;
+        return W_ERROR;
     }
-    move_to_str(move, row, col);
+    if (action == W_PASS) sprintf(move, "PASS");
+    else move_to_str(move, row, col);
     printf("%s %s\n", color == W_WHITE ? "white" : "black", move);
-    return 1;
+    return err;
 }
 
 static void print_header(struct GameContext* ctx) {
@@ -78,19 +82,33 @@ static void print_header(struct GameContext* ctx) {
 }
 
 int game_run(struct GameContext* ctx) {
+    enum WeiqiColor color;
+
     if (!ctx->black.reset(&ctx->black)) return 0;
     if (!ctx->white.reset(&ctx->white)) return 0;
 
     print_header(ctx);
     if (       ctx->weiqi.history.last
             && ctx->weiqi.history.last->color == W_BLACK
-            && !play_turn(ctx, W_WHITE)) {
+            && play_turn(ctx, W_WHITE) != W_NO_ERROR) {
         return 0;
     }
 
+    color = W_BLACK;
     while (ctx->ui.status != W_UI_QUIT) {
-        if (!play_turn(ctx, W_BLACK)) return 0;
-        if (!play_turn(ctx, W_WHITE)) return 0;
+        enum WeiqiError err;
+        err = play_turn(ctx, color);
+        switch (err) {
+            case W_GAME_OVER:
+                fprintf(stderr, "game over\n");
+                interface_wait(&ctx->ui);
+                return 1;
+            case W_ERROR:
+                return 0;
+            default:
+                break;
+        }
+        color = color == W_WHITE ? W_BLACK : W_WHITE;
     }
     return 1;
 }
@@ -189,8 +207,11 @@ int game_load_file(struct GameContext* ctx, const char* name) {
                 break;
             } else {
                 unsigned int row, col;
-                if (   !str_to_move(&row, &col, arg)
-                    || !weiqi_register_move(&ctx->weiqi, W_WHITE, row, col)) {
+                char pass;
+                if (       !str_to_move(&row, &col, &pass, arg)
+                        || !weiqi_register_move(&ctx->weiqi, 
+                                                W_WHITE, pass ? W_PASS : W_PLAY,
+                                                row, col)) {
                     ok = 0;
                     break;
                 }
@@ -202,8 +223,11 @@ int game_load_file(struct GameContext* ctx, const char* name) {
                 break;
             } else {
                 unsigned int row, col;
-                if (   !str_to_move(&row, &col, arg)
-                    || !weiqi_register_move(&ctx->weiqi, W_BLACK, row, col)) {
+                char pass;
+                if (       !str_to_move(&row, &col, &pass, arg)
+                        || !weiqi_register_move(&ctx->weiqi,
+                                                W_BLACK, pass ? W_PASS : W_PLAY,
+                                                row, col)) {
                     ok = 0;
                     break;
                 }

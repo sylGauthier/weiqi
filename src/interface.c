@@ -42,6 +42,20 @@ void resize_callback(struct Viewer* viewer, void* data) {
 
 void key_callback(struct Viewer* viewer, int key, int scancode, int action,
                   int mods, void* data) {
+    struct Interface* interface = data;
+
+    if (action != GLFW_PRESS) return;
+
+    switch (key) {
+        case GLFW_KEY_P:
+            if (interface->status == W_UI_SELECT) {
+                interface->pass = 1;
+                interface->status = W_UI_RUN;
+            }
+            break;
+        default:
+            break;
+    }
     return;
 }
 
@@ -252,6 +266,7 @@ int interface_init(struct Interface* ui, struct Weiqi* weiqi) {
     ui->cursorPos[1] = 0;
     ui->selectPos[0] = 0;
     ui->selectPos[1] = 0;
+    ui->pass = 0;
 
     if (pthread_create(&ui->thread, NULL, run_interface, ui) != 0) {
         fprintf(stderr, "Error: interface: couldn't start thread\n");
@@ -266,7 +281,17 @@ void interface_free(struct Interface* ui) {
     pthread_join(ui->thread, NULL);
 }
 
-int interface_get_move(struct Interface* ui, enum WeiqiColor color,
+void interface_wait(struct Interface* ui) {
+    while (ui->status != W_UI_QUIT) {
+        struct timespec t;
+        t.tv_nsec = 10000000;
+        t.tv_sec = 0;
+        nanosleep(&t, NULL);
+    }
+}
+
+int interface_get_move(struct Interface* ui,
+                       enum WeiqiColor color, enum MoveAction* action,
                        unsigned int* row, unsigned int* col) {
     ui->status = W_UI_SELECT;
 
@@ -276,6 +301,12 @@ int interface_get_move(struct Interface* ui, enum WeiqiColor color,
         t.tv_sec = 0;
         nanosleep(&t, NULL);
     }
+    if (ui->pass) {
+        *action = W_PASS;
+        ui->pass = 0;
+        return ui->status;
+    }
+    *action = W_PLAY;
     *col = ui->selectPos[0];
     *row = ui->selectPos[1];
     return ui->status;
