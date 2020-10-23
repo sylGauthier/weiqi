@@ -224,7 +224,9 @@ static void merge_cluster(struct Weiqi* weiqi, struct StoneList* dest,
                           struct StoneList* cluster) {
     struct StoneList *tail = dest;
 
-    while (tail->next) tail = tail->next;
+    while (tail->next) {
+        tail = tail->next;
+    }
     tail->next = cluster;
 
     for (; cluster; cluster = cluster->next) {
@@ -279,10 +281,20 @@ int weiqi_register_move(struct Weiqi* weiqi, enum WeiqiColor color,
     VERTICE_CLUSTER(weiqi, row, col) = new;
     VERTICE_COLOR(weiqi, row, col) = color;
     for (i = 0; i < numFriends; i++) {
-        merge_cluster(weiqi, new, friends[i]);
+        int merge = 1, j;
+        /* if two friends are part of the same cluster, we only merge once */
+        for (j = 0; j < i && merge; j++) {
+            if (friends[j] == friends[i]) merge = 0;
+        }
+        if (merge) merge_cluster(weiqi, new, friends[i]);
     }
     for (i = 0; i < numEnemies; i++) {
-        if (count_liberties(weiqi, enemies[i]) == 0) {
+        int delete = 1, j;
+        /* if two enemies are part of the same cluster, we only delete once */
+        for (j = 0; j < i && delete; j++) {
+            if (enemies[j] == enemies[i]) delete = 0;
+        }
+        if (delete && count_liberties(weiqi, enemies[i]) == 0) {
             del_cluster(weiqi, enemies[i]);
         }
     }
