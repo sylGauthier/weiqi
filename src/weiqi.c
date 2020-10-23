@@ -275,6 +275,7 @@ int weiqi_register_move(struct Weiqi* weiqi,
     struct StoneList *friends[4] = {NULL}, *enemies[4] = {NULL}, *new = NULL;
     unsigned int numFriends = 0, numEnemies = 0, numVert = 0, i;
 
+    /* we deal with the PASS case first */
     if (action == W_PASS) {
         struct Move* last = weiqi->history.last;
         if (!history_push(&weiqi->history, color, W_PASS, 0, 0)) {
@@ -284,10 +285,13 @@ int weiqi_register_move(struct Weiqi* weiqi,
         return W_NO_ERROR;
     }
 
+    /* get neighbouring clusters and check that the move is valid */
     get_clusters(weiqi, color, row, col, friends, &numFriends,
                  enemies, &numEnemies, &numVert);
     if (!move_valid(weiqi, color, row, col, friends, numFriends,
                     enemies, numEnemies, numVert)) return 0;
+
+    /* create a new cluster for the new stone */
     if (!(new = list_new())) {
         fprintf(stderr, "Error: can't create new stone list\n");
         return W_ERROR;
@@ -296,6 +300,8 @@ int weiqi_register_move(struct Weiqi* weiqi,
     new->col = col;
     VERTICE_CLUSTER(weiqi, row, col) = new;
     VERTICE_COLOR(weiqi, row, col) = color;
+
+    /* merge it with its neighbouring friends */
     for (i = 0; i < numFriends; i++) {
         int merge = 1, j;
         /* if two friends are part of the same cluster, we only merge once */
@@ -304,6 +310,8 @@ int weiqi_register_move(struct Weiqi* weiqi,
         }
         if (merge) merge_cluster(weiqi, new, friends[i]);
     }
+
+    /* and kill neighbouring enemies if 0 liberty left */
     for (i = 0; i < numEnemies; i++) {
         int delete = 1, j;
         /* if two enemies are part of the same cluster, we only delete once */
@@ -314,6 +322,8 @@ int weiqi_register_move(struct Weiqi* weiqi,
             del_cluster(weiqi, enemies[i]);
         }
     }
+
+    /* push into history */
     if (!history_push(&weiqi->history, color, W_PLAY, row, col))
         return W_ERROR;
     return W_NO_ERROR;
