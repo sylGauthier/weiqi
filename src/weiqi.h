@@ -27,12 +27,17 @@ struct Move {
     struct Move* next;
 };
 
+struct History {
+    struct Move* first;
+    struct Move* last;
+};
+
 struct Weiqi {
     char boardSize, handicap;
     char* board;
     char* liberties;
     struct StoneList** clusters;
-    struct Move* history;
+    struct History history;
 
     unsigned int wcap;  /* stones captured by white */
     unsigned int bcap;  /* stones captured by black */

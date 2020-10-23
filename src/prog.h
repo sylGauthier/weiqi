@@ -15,6 +15,7 @@ struct Prog {
     enum PlayerType black;
 
     const char* gtpCmd;
+    const char* gameFile;
 
     struct GameContext ctx;
 };
