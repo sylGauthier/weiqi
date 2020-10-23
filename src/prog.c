@@ -37,6 +37,7 @@ int prog_load_defaults(struct Prog* prog) {
     prog->white = W_GTP_LOCAL;
     prog->black = W_HUMAN;
     prog->gtpCmd = "/usr/bin/gnugo --mode gtp";
+    prog->gameFile = NULL;
     return 1;
 }
 
@@ -88,6 +89,13 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
             }
             prog->handicap = strtol(argv[i + 1], NULL, 10);
             i++;
+        } else if (!strcmp(arg, "-l") || !strcmp(arg, "--load")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            prog->gameFile = argv[i + 1];
+            i++;
         } else {
             print_help(argv[0]);
             return 0;
@@ -101,9 +109,18 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
 }
 
 int prog_init(struct Prog* prog) {
-    if (       !game_init(&prog->ctx, prog->boardSize, prog->handicap)
-            || !player_init(prog, &prog->ctx.white, prog->white)
+    if (prog->gameFile && !game_load_file(&prog->ctx, prog->gameFile) && 1) {
+        fprintf(stderr, "Error: loading game file failed\n");
+        return 0;
+    } else if (    !prog->gameFile
+                && !game_init(&prog->ctx, prog->boardSize, prog->handicap)) {
+        fprintf(stderr, "Error: game init failed\n");
+        return 0;
+    }
+    if (       !player_init(prog, &prog->ctx.white, prog->white)
             || !player_init(prog, &prog->ctx.black, prog->black)) {
+        fprintf(stderr, "Error: player init failed\n");
+        game_free(&prog->ctx);
         return 0;
     }
     return 1;

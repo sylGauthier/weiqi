@@ -38,7 +38,8 @@ int weiqi_init(struct Weiqi* weiqi, char s, char h) {
     weiqi->board = NULL;
     weiqi->liberties = NULL;
     weiqi->clusters = NULL;
-    weiqi->history = NULL;
+    weiqi->history.first = NULL;
+    weiqi->history.last = NULL;
     if (s == 7) maxHandicap = 4;
     else maxHandicap = 4 + (s % 2) * 5;
 
@@ -97,7 +98,7 @@ void weiqi_free(struct Weiqi* weiqi) {
     free(weiqi->board);
     free(weiqi->liberties);
     free(weiqi->clusters);
-    free_history(weiqi->history);
+    free_history(weiqi->history.last);
 }
 
 static int count_liberties(struct Weiqi* w, struct StoneList* cluster) {
@@ -244,7 +245,7 @@ static void del_cluster(struct Weiqi* weiqi, struct StoneList* cluster) {
     }
 }
 
-static int history_push(struct Move** hist, enum WeiqiColor color,
+static int history_push(struct History* hist, enum WeiqiColor color,
                         unsigned int row, unsigned int col) {
     struct Move* new;
 
@@ -257,9 +258,10 @@ static int history_push(struct Move** hist, enum WeiqiColor color,
     new->row = row;
     new->col = col;
     new->next = NULL;
-    new->prev = *hist;
-    if (*hist) (*hist)->next = new;
-    *hist = new;
+    new->prev = hist->last;
+    if (hist->last) hist->last->next = new;
+    hist->last = new;
+    if (!hist->first) hist->first = new;
     return 1;
 }
 

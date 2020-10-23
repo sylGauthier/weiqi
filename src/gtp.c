@@ -77,19 +77,13 @@ int gtp_init(struct Player* player, FILE* in, FILE* out) {
 
 int gtp_local_engine_init(struct Player* player, const char* cmd) {
     FILE *in, *out;
-    int pid, i, ok = 1;
+    int pid, ok = 1;
     char** splitcmd;
 
     if (!(splitcmd = split_cmd(cmd))) {
         fprintf(stderr, "Error: can't split command\n");
         return 0;
     }
-
-    printf("local go engine (GTP):");
-    for (i = 0; splitcmd[i]; i++) {
-        printf(" %s", splitcmd[i]);
-    }
-    printf("\n");
 
     pid = pipe_proc(splitcmd[0], splitcmd, &out, &in);
 
@@ -151,6 +145,7 @@ static void gtp_showboard(struct Player* player) {
 #endif
 
 int gtp_reset(struct Player* player) {
+    struct Move* cur = NULL;
     struct GTPConnection* c = player->data;
     fprintf(c->out, "clear_board\n");
     fflush(c->out);
@@ -164,13 +159,12 @@ int gtp_reset(struct Player* player) {
         fprintf(stderr, "Error: GTP: engine doesn't accept this board size\n");
         return 0;
     }
-    if (player->weiqi->handicap >= 2) {
-        fprintf(c->out, "fixed_handicap %d\n", player->weiqi->handicap);
-        fflush(c->out);
-        if (!gtp_is_happy(c->in)) {
-            fprintf(stderr, "Error: GTP: engine doesn't accept handicaps\n");
+
+    cur = player->weiqi->history.first;
+    while (cur) {
+        if (gtp_send_move(player, cur->color, cur->row, cur->col) != W_NO_ERROR)
             return 0;
-        }
+        cur = cur->next;
     }
     return 1;
 }
