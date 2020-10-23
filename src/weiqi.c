@@ -17,18 +17,21 @@ static void setup_handicap(struct Weiqi* weiqi) {
 
     if (h < 2) return;
     ed = weiqi->boardSize <= 12 ? 2 : 3;
-    weiqi_register_move(weiqi, W_BLACK, ed, ed);
-    weiqi_register_move(weiqi, W_BLACK, s - ed, s - ed);
-    if (h >= 3) weiqi_register_move(weiqi, W_BLACK, s - ed, ed);
-    if (h >= 4) weiqi_register_move(weiqi, W_BLACK, ed, s - ed);
-    if (h % 2 && h >= 5) weiqi_register_move(weiqi, W_BLACK, s / 2, s / 2);
+    weiqi_register_move(weiqi, W_BLACK, W_PLAY, ed, ed);
+    weiqi_register_move(weiqi, W_BLACK, W_PLAY, s - ed, s - ed);
+    if (h >= 3)
+        weiqi_register_move(weiqi, W_BLACK, W_PLAY, s - ed, ed);
+    if (h >= 4)
+        weiqi_register_move(weiqi, W_BLACK, W_PLAY, ed, s - ed);
+    if (h % 2 && h >= 5)
+        weiqi_register_move(weiqi, W_BLACK, W_PLAY, s / 2, s / 2);
     if (h >= 6) {
-        weiqi_register_move(weiqi, W_BLACK, s / 2, ed);
-        weiqi_register_move(weiqi, W_BLACK, s / 2, s - ed);
+        weiqi_register_move(weiqi, W_BLACK, W_PLAY, s / 2, ed);
+        weiqi_register_move(weiqi, W_BLACK, W_PLAY, s / 2, s - ed);
     }
     if (h >= 8) {
-        weiqi_register_move(weiqi, W_BLACK, ed, s / 2);
-        weiqi_register_move(weiqi, W_BLACK, s - ed, s / 2);
+        weiqi_register_move(weiqi, W_BLACK, W_PLAY, ed, s / 2);
+        weiqi_register_move(weiqi, W_BLACK, W_PLAY, s - ed, s / 2);
     }
 }
 
@@ -245,7 +248,8 @@ static void del_cluster(struct Weiqi* weiqi, struct StoneList* cluster) {
     }
 }
 
-static int history_push(struct History* hist, enum WeiqiColor color,
+static int history_push(struct History* hist,
+                        enum WeiqiColor color, enum MoveAction action,
                         unsigned int row, unsigned int col) {
     struct Move* new;
 
@@ -254,7 +258,7 @@ static int history_push(struct History* hist, enum WeiqiColor color,
         return 0;
     }
     new->color = color;
-    new->action = W_PLAY;
+    new->action = action;
     new->row = row;
     new->col = col;
     new->next = NULL;
@@ -265,10 +269,20 @@ static int history_push(struct History* hist, enum WeiqiColor color,
     return 1;
 }
 
-int weiqi_register_move(struct Weiqi* weiqi, enum WeiqiColor color,
+int weiqi_register_move(struct Weiqi* weiqi,
+                        enum WeiqiColor color, enum MoveAction action,
                         unsigned int row, unsigned int col) {
     struct StoneList *friends[4] = {NULL}, *enemies[4] = {NULL}, *new = NULL;
     unsigned int numFriends = 0, numEnemies = 0, numVert = 0, i;
+
+    if (action == W_PASS) {
+        struct Move* last = weiqi->history.last;
+        if (!history_push(&weiqi->history, color, W_PASS, 0, 0)) {
+            return W_ERROR;
+        }
+        if (last && last->action == W_PASS) return W_GAME_OVER;
+        return W_NO_ERROR;
+    }
 
     get_clusters(weiqi, color, row, col, friends, &numFriends,
                  enemies, &numEnemies, &numVert);
@@ -276,7 +290,7 @@ int weiqi_register_move(struct Weiqi* weiqi, enum WeiqiColor color,
                     enemies, numEnemies, numVert)) return 0;
     if (!(new = list_new())) {
         fprintf(stderr, "Error: can't create new stone list\n");
-        return 0;
+        return W_ERROR;
     }
     new->row = row;
     new->col = col;
@@ -300,5 +314,7 @@ int weiqi_register_move(struct Weiqi* weiqi, enum WeiqiColor color,
             del_cluster(weiqi, enemies[i]);
         }
     }
-    return history_push(&weiqi->history, color, row, col);
+    if (!history_push(&weiqi->history, color, W_PLAY, row, col))
+        return W_ERROR;
+    return W_NO_ERROR;
 }

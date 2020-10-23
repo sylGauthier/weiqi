@@ -12,10 +12,20 @@ int move_to_str(char dest[3], unsigned int row, unsigned int col) {
     return 1;
 }
 
-int str_to_move(unsigned int* row, unsigned int* col, const char* str) {
-    if (strlen(str) < 2 || str[0] < 'A' || str[0] > 'Z' || str[1] < '0' || str[1] > '9'
-            || (strlen(str) == 3 && (str[2] < '0' || str[2] > '9')) || strlen(str) > 3) {
-        fprintf(stderr, "Error: move must be letter and number, like D4, Q16, etc.\n");
+int str_to_move(unsigned int* row, unsigned int* col,
+                char* pass, const char* str) {
+    if (!strcmp(str, "PASS")) {
+        *pass = 1;
+        return 1;
+    }
+    *pass = 0;
+    if (       strlen(str) < 2
+            || str[0] < 'A' || str[0] > 'Z'
+            || str[1] < '0' || str[1] > '9'
+            || (strlen(str) == 3 && (str[2] < '0' || str[2] > '9'))
+            || strlen(str) > 3) {
+        fprintf(stderr, "Error: move must be letter and number, "
+                        "like D4, Q16, etc.\n");
         return 0;
     } else {
         *col = str[0] - 'A';

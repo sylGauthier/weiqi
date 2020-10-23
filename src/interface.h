@@ -30,6 +30,7 @@ struct Interface {
 
     unsigned int cursorPos[2];
     unsigned int selectPos[2];
+    char pass;
 
     enum InterfaceStatus status;
 
@@ -38,8 +39,10 @@ struct Interface {
 
 int interface_init(struct Interface* ui, struct Weiqi* weiqi);
 void interface_free(struct Interface* ui);
+void interface_wait(struct Interface* ui);
 
-int interface_get_move(struct Interface* ui, enum WeiqiColor color,
+int interface_get_move(struct Interface* ui,
+                       enum WeiqiColor color, enum MoveAction* action,
                        unsigned int* row, unsigned int* col);
 
 #endif
