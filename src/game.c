@@ -31,7 +31,7 @@ static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
     struct Player *p1, *p2;
     unsigned int row, col;
     char move[5];
-    enum MoveAction action;
+    enum MoveAction action = W_PLAY;
     enum WeiqiError err;
 
     if (color == W_WHITE) {
