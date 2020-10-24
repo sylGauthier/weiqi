@@ -33,11 +33,14 @@ struct Interface {
     char pass;
 
     enum InterfaceStatus status;
+    enum InterfaceTheme theme;
 
     pthread_t thread;
 };
 
-int interface_init(struct Interface* ui, struct Weiqi* weiqi);
+int interface_init(struct Interface* ui, enum InterfaceTheme theme,
+                   struct Weiqi* weiqi);
+
 void interface_free(struct Interface* ui);
 void interface_wait(struct Interface* ui);
 

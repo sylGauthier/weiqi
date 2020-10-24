@@ -6,8 +6,14 @@
 #include "human.h"
 
 static void print_help(const char* cmd) {
-    printf("%s [-w|--white <human|gnugo>] [-b|--black <human|gnugo>] "
-           "[-s|--size <size>] [-h|--handicap <handicap>]\n", cmd);
+    printf("%s [OPTIONS]\n"
+           "    -s --size <size>: board size (5-25, default 19)\n"
+           "    -h --handicap <num>: number of handicaps (default 0)\n"
+           "    -b --black <human|gnugo>: black player (default human)\n"
+           "    -w --white <human|gnugo>: white player (default gnugo)\n"
+           "    -l --load <file>: load a saved game\n"
+           "    -i --interface <pure|nice>: interface theme (default nice)\n",
+           cmd);
 }
 
 static int player_init(struct Prog* prog, struct Player* player, enum PlayerType type) {
@@ -36,6 +42,7 @@ int prog_load_defaults(struct Prog* prog) {
     prog->handicap = 0;
     prog->white = W_GTP_LOCAL;
     prog->black = W_HUMAN;
+    prog->theme = W_UI_NICE;
     prog->gtpCmd = "/usr/bin/gnugo --mode gtp";
     prog->gameFile = NULL;
     return 1;
@@ -96,6 +103,20 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
             }
             prog->gameFile = argv[i + 1];
             i++;
+        } else if (!strcmp(arg, "-i") || !strcmp(arg, "--interface")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            if (!strcmp(argv[i + 1], "pure")) {
+                prog->theme = W_UI_PURE;
+            } else if (!strcmp(argv[i + 1], "nice")) {
+                prog->theme = W_UI_NICE;
+            } else {
+                print_help(argv[0]);
+                return 0;
+            }
+            i++;
         } else {
             print_help(argv[0]);
             return 0;
@@ -109,11 +130,13 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
 }
 
 int prog_init(struct Prog* prog) {
-    if (prog->gameFile && !game_load_file(&prog->ctx, prog->gameFile) && 1) {
+    if (       prog->gameFile
+            && !game_load_file(&prog->ctx, prog->theme, prog->gameFile)) {
         fprintf(stderr, "Error: loading game file failed\n");
         return 0;
     } else if (    !prog->gameFile
-                && !game_init(&prog->ctx, prog->boardSize, prog->handicap)) {
+                && !game_init(&prog->ctx, prog->theme,
+                              prog->boardSize, prog->handicap)) {
         fprintf(stderr, "Error: game init failed\n");
         return 0;
     }

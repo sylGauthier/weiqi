@@ -11,10 +11,14 @@ struct GameContext {
     struct Interface ui;
 };
 
-int game_init(struct GameContext* ctx, char boardSize, char handicap);
+int game_init(struct GameContext* ctx, enum InterfaceTheme theme,
+              char boardSize, char handicap);
+
+int game_load_file(struct GameContext* ctx, enum InterfaceTheme theme,
+                   const char* f);
+
 void game_free(struct GameContext* ctx);
 
 int game_run(struct GameContext* ctx);
-int game_load_file(struct GameContext* ctx, const char* f);
 
 #endif

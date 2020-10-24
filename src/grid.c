@@ -84,9 +84,9 @@ GLuint grid_gen(unsigned int boardSize, float scale) {
     unsigned int i;
 
     for (i = 0; i < GRID_RES * GRID_RES; i++) {
-        texBuf[3 * i + 0] = 188;
-        texBuf[3 * i + 1] = 172;
-        texBuf[3 * i + 2] = 82;
+        texBuf[3 * i + 0] = 129;
+        texBuf[3 * i + 1] = 115;
+        texBuf[3 * i + 2] = 37;
     }
     draw_grid(texBuf, boardSize, scale);
     draw_dots(texBuf, boardSize, scale);
