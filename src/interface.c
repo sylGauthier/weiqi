@@ -7,8 +7,13 @@
 #include <GLFW/glfw3.h>
 
 #include <3dmr/render/camera_buffer_object.h>
+#include <3dmr/render/lights_buffer_object.h>
 
 #include "interface.h"
+
+#define SUN_DIRECTION   {-0.3, 0, -1}
+#define SUN_COLOR       {0.8, 0.8, 0.55}
+#define AMBIENT_COLOR   {5, 5, 5}
 
 void update_node(struct Scene* scene, struct Node* n, void* data) {
     switch (n->type) {
@@ -193,6 +198,15 @@ static void render_board(struct Interface* ui) {
     render_pointer(ui);
 }
 
+static void setup_lighting(struct Scene* scene) {
+    struct DirectionalLight l = {SUN_DIRECTION, SUN_COLOR};
+    struct AmbientLight a = {AMBIENT_COLOR};
+    lights_buffer_object_update_dlight(&scene->lights, &l, 0);
+    lights_buffer_object_update_ndlight(&scene->lights, 1);
+    lights_buffer_object_update_ambient(&scene->lights, &a);
+    uniform_buffer_send(&scene->lights);
+}
+
 void* run_interface(void* arg) {
     struct Interface* ui = arg;
     int sceneInit = 0;
@@ -210,13 +224,13 @@ void* run_interface(void* arg) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
     } else if (!(sceneInit = scene_init(&ui->scene, &ui->camera))) {
         fprintf(stderr, "Error: interface: can't init scene\n");
-    } else if (!board_create(&ui->board, ui->weiqi->boardSize, scale,
-                             0.59, 0.5, 0.3)) {
+    } else if (!board_create(&ui->board, ui->theme,
+                             ui->weiqi->boardSize, scale)) {
         fprintf(stderr, "Error: interface: can't create board\n");
-    } else if (!pointer_create(&ui->pointer, radius / 2.)) {
+    } else if (!pointer_create(&ui->pointer, ui->theme, radius / 2.)) {
         fprintf(stderr, "Error: interface: can't create pointer\n");
-    } else if (!stone_create(&ui->wStone, radius, 1., 1., 1.)
-            || !stone_create(&ui->bStone, radius, 0.1, 0.1, 0.1)) {
+    } else if (!stone_create(&ui->wStone, ui->theme, radius, 1., 1., 1.)
+            || !stone_create(&ui->bStone, ui->theme, radius, 0., 0., 0.)) {
         fprintf(stderr, "Error: interface: can't create stones\n");
     } else if (    !(ui->camNode = malloc(sizeof(struct Node)))
                 || !(ui->camOrientation = malloc(sizeof(struct Node)))) {
@@ -238,11 +252,11 @@ void* run_interface(void* arg) {
             node_add_child(ui->camOrientation, ui->camNode);
             node_translate(ui->camNode, t);
         }
+        setup_lighting(&ui->scene);
 
         while (ui->status != W_UI_QUIT) {
             viewer_process_events(ui->viewer);
             scene_update_nodes(&ui->scene, update_node, NULL);
-            uniform_buffer_send(&ui->scene.lights);
             uniform_buffer_send(&ui->scene.camera);
             render_board(ui);
             viewer_next_frame(ui->viewer);
@@ -258,10 +272,12 @@ void* run_interface(void* arg) {
     pthread_exit(NULL);
 }
 
-int interface_init(struct Interface* ui, struct Weiqi* weiqi) {
+int interface_init(struct Interface* ui, enum InterfaceTheme theme,
+                   struct Weiqi* weiqi) {
     ui->viewer = NULL;
     ui->weiqi = weiqi;
     ui->status = W_UI_RUN;
+    ui->theme = theme;
     ui->cursorPos[0] = 0;
     ui->cursorPos[1] = 0;
     ui->selectPos[0] = 0;

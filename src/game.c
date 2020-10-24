@@ -4,14 +4,15 @@
 #include "game.h"
 #include "utils.h"
 
-int game_init(struct GameContext* ctx, char boardSize, char handicap) {
+int game_init(struct GameContext* ctx, enum InterfaceTheme theme,
+              char boardSize, char handicap) {
     if (boardSize < 5 || boardSize > 25) {
         fprintf(stderr, "Error: invalid board size\n");
         return 0;
     }
     if (!(weiqi_init(&ctx->weiqi, boardSize, handicap))) {
         return 0;
-    } else if (!interface_init(&ctx->ui, &ctx->weiqi)) {
+    } else if (!interface_init(&ctx->ui, theme, &ctx->weiqi)) {
         weiqi_free(&ctx->weiqi);
         return 0;
     }
@@ -154,7 +155,8 @@ static int get_cmd(FILE* f, char** cmd, char** arg) {
     return 1;
 }
 
-int game_load_file(struct GameContext* ctx, const char* name) {
+int game_load_file(struct GameContext* ctx, enum InterfaceTheme theme,
+                   const char* name) {
     char *cmd, *arg;
     char start = 0, end = 0, boardSize = 19, handicap = 0, ok = 1;
     FILE* f;
@@ -193,7 +195,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
             return 0;
         }
     }
-    if (!game_init(ctx, boardSize, handicap)) {
+    if (!game_init(ctx, theme, boardSize, handicap)) {
         fprintf(stderr, "Error: game init failed\n");
         return 0;
     }
