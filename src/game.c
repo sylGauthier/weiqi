@@ -211,9 +211,10 @@ int game_load_file(struct GameContext* ctx, enum InterfaceTheme theme,
                 unsigned int row, col;
                 char pass;
                 if (       !str_to_move(&row, &col, &pass, arg)
-                        || !weiqi_register_move(&ctx->weiqi, 
-                                                W_WHITE, pass ? W_PASS : W_PLAY,
-                                                row, col)) {
+                        || weiqi_register_move(&ctx->weiqi, 
+                                               W_WHITE, pass ? W_PASS : W_PLAY,
+                                               row, col) != W_NO_ERROR) {
+                    fprintf(stderr, "file: invalid move: %s\n", arg);
                     ok = 0;
                     break;
                 }
@@ -227,9 +228,10 @@ int game_load_file(struct GameContext* ctx, enum InterfaceTheme theme,
                 unsigned int row, col;
                 char pass;
                 if (       !str_to_move(&row, &col, &pass, arg)
-                        || !weiqi_register_move(&ctx->weiqi,
-                                                W_BLACK, pass ? W_PASS : W_PLAY,
-                                                row, col)) {
+                        || weiqi_register_move(&ctx->weiqi,
+                                               W_BLACK, pass ? W_PASS : W_PLAY,
+                                               row, col) != W_NO_ERROR) {
+                    fprintf(stderr, "file: invalid move: %s\n", arg);
                     ok = 0;
                     break;
                 }
