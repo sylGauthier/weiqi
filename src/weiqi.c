@@ -289,7 +289,9 @@ int weiqi_register_move(struct Weiqi* weiqi,
     get_clusters(weiqi, color, row, col, friends, &numFriends,
                  enemies, &numEnemies, &numVert);
     if (!move_valid(weiqi, color, row, col, friends, numFriends,
-                    enemies, numEnemies, numVert)) return 0;
+                    enemies, numEnemies, numVert)) {
+        return W_ILLEGAL_MOVE;
+    }
 
     /* create a new cluster for the new stone */
     if (!(new = list_new())) {
