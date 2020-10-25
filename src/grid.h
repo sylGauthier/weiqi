@@ -5,6 +5,6 @@
 
 #include <3dmr/render/texture.h>
 
-GLuint grid_gen(unsigned int boardSize, float gridScale);
+GLuint grid_gen(unsigned int boardSize, float gridScale, const char* tex);
 
 #endif

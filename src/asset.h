@@ -4,9 +4,23 @@
 #include <3dmr/material/solid.h>
 #include <3dmr/material/pbr.h>
 
-enum InterfaceTheme {
+enum InterfaceStyle {
     W_UI_PURE,
     W_UI_NICE
+};
+
+struct InterfaceTheme {
+    enum InterfaceStyle style;
+    char* wood;
+
+    Vec3 bStoneColor;
+    Vec3 wStoneColor;
+    Vec3 pointerColor;
+
+    float boardRoughness, boardMetal;
+    float stoneRoughness, stoneMetal;
+    float boardThickness, gridScale;
+    float pointerSize;
 };
 
 struct Asset3D {
@@ -27,14 +41,12 @@ struct Stone3D {
     float radius;
 };
 
-int board_create(struct Board3D* board, enum InterfaceTheme theme,
-                 unsigned int size, float gridScale);
-
-int stone_create(struct Stone3D* stone, enum InterfaceTheme theme,
-                 float radius, float r, float g, float b);
-
-int pointer_create(struct Asset3D* pointer, enum InterfaceTheme theme,
-                   float size);
+int assets_create(struct Board3D* board,
+                  struct Stone3D* bStone,
+                  struct Stone3D* wStone,
+                  struct Asset3D* pointer,
+                  unsigned int boardSize,
+                  struct InterfaceTheme* theme);
 
 void asset_init(struct Asset3D* asset);
 void asset_free(struct Asset3D* asset);
