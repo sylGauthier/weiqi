@@ -5,6 +5,8 @@
 #include "gtp.h"
 #include "human.h"
 
+#define SET_VEC3(v, a, b, c) v[0] = (a); v[1] = (b); v[2] = (c);
+
 static void print_help(const char* cmd) {
     printf("%s [OPTIONS]\n"
            "    -s --size <size>: board size (5-25, default 19)\n"
@@ -37,14 +39,29 @@ static int player_init(struct Prog* prog, struct Player* player, enum PlayerType
     return 1;
 }
 
+static void load_default_theme(struct InterfaceTheme* theme) {
+    theme->style = W_UI_NICE;
+    theme->wood = "textures/wood.png";
+    SET_VEC3(theme->bStoneColor, 0, 0, 0);
+    SET_VEC3(theme->wStoneColor, 1, 1, 1);
+    SET_VEC3(theme->pointerColor, 0, 0, 0);
+    theme->boardRoughness = 0.3;
+    theme->boardMetal = 0.;
+    theme->stoneRoughness = 0.3;
+    theme->stoneMetal = 0;
+    theme->boardThickness = 0.01;
+    theme->gridScale = 1. / 1.1;
+    theme->pointerSize = 0.01;
+}
+
 int prog_load_defaults(struct Prog* prog) {
     prog->boardSize = 19;
     prog->handicap = 0;
     prog->white = W_GTP_LOCAL;
     prog->black = W_HUMAN;
-    prog->theme = W_UI_NICE;
     prog->gtpCmd = "/usr/bin/gnugo --mode gtp";
     prog->gameFile = NULL;
+    load_default_theme(&prog->ctx.ui.theme);
     return 1;
 }
 
@@ -109,13 +126,20 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 return 0;
             }
             if (!strcmp(argv[i + 1], "pure")) {
-                prog->theme = W_UI_PURE;
+                prog->ctx.ui.theme.style = W_UI_PURE;
             } else if (!strcmp(argv[i + 1], "nice")) {
-                prog->theme = W_UI_NICE;
+                prog->ctx.ui.theme.style = W_UI_NICE;
             } else {
                 print_help(argv[0]);
                 return 0;
             }
+            i++;
+        } else if (!strcmp(arg, "--texture")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            prog->ctx.ui.theme.wood = argv[i + 1];
             i++;
         } else {
             print_help(argv[0]);
@@ -130,13 +154,11 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
 }
 
 int prog_init(struct Prog* prog) {
-    if (       prog->gameFile
-            && !game_load_file(&prog->ctx, prog->theme, prog->gameFile)) {
+    if (prog->gameFile && !game_load_file(&prog->ctx, prog->gameFile)) {
         fprintf(stderr, "Error: loading game file failed\n");
         return 0;
     } else if (    !prog->gameFile
-                && !game_init(&prog->ctx, prog->theme,
-                              prog->boardSize, prog->handicap)) {
+                && !game_init(&prog->ctx, prog->boardSize, prog->handicap)) {
         fprintf(stderr, "Error: game init failed\n");
         return 0;
     }

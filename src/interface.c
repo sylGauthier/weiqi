@@ -209,10 +209,8 @@ static void setup_lighting(struct Scene* scene) {
 
 void* run_interface(void* arg) {
     struct Interface* ui = arg;
-    int sceneInit = 0;
-    float scale = 1. / 1.1, radius;
+    int sceneInit = 0, ac;
 
-    radius = 1. / (2. * (float)ui->weiqi->boardSize) * scale;
     camera_projection(1., 30 / 360. * 2 * M_PI, 0.001, 1000.,
                       ui->camera.projection);
     asset_init(&ui->board.geom);
@@ -224,14 +222,10 @@ void* run_interface(void* arg) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
     } else if (!(sceneInit = scene_init(&ui->scene, &ui->camera))) {
         fprintf(stderr, "Error: interface: can't init scene\n");
-    } else if (!board_create(&ui->board, ui->theme,
-                             ui->weiqi->boardSize, scale)) {
-        fprintf(stderr, "Error: interface: can't create board\n");
-    } else if (!pointer_create(&ui->pointer, ui->theme, radius / 2.)) {
-        fprintf(stderr, "Error: interface: can't create pointer\n");
-    } else if (!stone_create(&ui->wStone, ui->theme, radius, 1., 1., 1.)
-            || !stone_create(&ui->bStone, ui->theme, radius, 0., 0., 0.)) {
-        fprintf(stderr, "Error: interface: can't create stones\n");
+    } else if (!(ac = assets_create(&ui->board, &ui->bStone, &ui->wStone,
+                                    &ui->pointer, ui->weiqi->boardSize,
+                                    &ui->theme))) {
+        fprintf(stderr, "Error: interface: can't create assets\n");
     } else if (    !(ui->camNode = malloc(sizeof(struct Node)))
                 || !(ui->camOrientation = malloc(sizeof(struct Node)))) {
         fprintf(stderr, "Error: interface: can't create cam node\n");
@@ -263,21 +257,21 @@ void* run_interface(void* arg) {
         }
     }
 
-    asset_free(&ui->board.geom);
-    asset_free(&ui->wStone.geom);
-    asset_free(&ui->bStone.geom);
-    asset_free(&ui->pointer);
+    if (ac) {
+        asset_free(&ui->board.geom);
+        asset_free(&ui->wStone.geom);
+        asset_free(&ui->bStone.geom);
+        asset_free(&ui->pointer);
+    }
     if (ui->viewer) viewer_free(ui->viewer);
     if (sceneInit) scene_free(&ui->scene, NULL);
     pthread_exit(NULL);
 }
 
-int interface_init(struct Interface* ui, enum InterfaceTheme theme,
-                   struct Weiqi* weiqi) {
+int interface_init(struct Interface* ui, struct Weiqi* weiqi) {
     ui->viewer = NULL;
     ui->weiqi = weiqi;
     ui->status = W_UI_RUN;
-    ui->theme = theme;
     ui->cursorPos[0] = 0;
     ui->cursorPos[1] = 0;
     ui->selectPos[0] = 0;

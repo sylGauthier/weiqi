@@ -1,3 +1,7 @@
+#include <stdlib.h>
+
+#include <3dmr/img/png.h>
+
 #include "grid.h"
 #include "utils.h"
 
@@ -79,19 +83,52 @@ static void draw_grid(unsigned char* buf, unsigned int size, float scale) {
     }
 }
 
-GLuint grid_gen(unsigned int boardSize, float scale) {
-    unsigned char texBuf[GRID_RES * GRID_RES * 3];
+static int load_tex(const char* filename, unsigned char** buffer) {
+    GLint ralign = 0;
+    unsigned int width, height, channels;
+
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &ralign);
+    if (png_read_file(filename, ralign,
+                      &width, &height, &channels, 3, 1, buffer)) {
+        if (width == GRID_RES && height == GRID_RES) {
+            return 1;
+        }
+        free(*buffer);
+    }
+    return 0;
+}
+
+static int load_color(unsigned char r, unsigned char g, unsigned char b,
+                      unsigned char** buffer) {
     unsigned int i;
 
+    if (!(*buffer = malloc(GRID_RES * GRID_RES * 3))) return 0;
+
     for (i = 0; i < GRID_RES * GRID_RES; i++) {
-        texBuf[3 * i + 0] = 129;
-        texBuf[3 * i + 1] = 115;
-        texBuf[3 * i + 2] = 37;
+        *buffer[3 * i + 0] = r;
+        *buffer[3 * i + 1] = g;
+        *buffer[3 * i + 2] = b;
     }
+    return 1;
+}
+
+GLuint grid_gen(unsigned int boardSize, float scale, const char* woodTex) {
+    unsigned char* texBuf;
+    GLuint tex = 0;
+
+    if (woodTex) {
+        if (!load_tex(woodTex, &texBuf)) return 0;
+    } else {
+        if (!load_color(129, 115, 37, &texBuf)) return 0;
+    }
+
     draw_grid(texBuf, boardSize, scale);
     draw_dots(texBuf, boardSize, scale);
-    if (!texture_load_from_uchar_buffer(texBuf, GRID_RES, GRID_RES, 3, 0)) return 0;
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    return 1;
+    tex = texture_load_from_uchar_buffer(texBuf, GRID_RES, GRID_RES, 3, 0);
+    if (tex) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+    free(texBuf);
+    return tex;
 }

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <3dmr/mesh/box.h>
 #include <3dmr/mesh/uvsphere.h>
@@ -39,12 +40,12 @@ static int solid_asset_tex(struct Asset3D* asset, enum MeshFlags flags,
 }
 
 static int solid_asset(struct Asset3D* asset, enum MeshFlags flags,
-                       float r, float g, float b) {
+                       Vec3 color) {
     int ok = 0;
     if (!(asset->solidParams = solid_material_params_new())) {
         fprintf(stderr, "Error: interface: can't create solid params\n");
     } else {
-        material_param_set_vec3_elems(&asset->solidParams->color, r, g, b);
+        material_param_set_vec3_constant(&asset->solidParams->color, color);
         asset->mat = solid_material_new(flags, asset->solidParams);
         ok = !!asset->mat;
     }
@@ -56,14 +57,14 @@ static int solid_asset(struct Asset3D* asset, enum MeshFlags flags,
 }
 
 static int pbr_asset(struct Asset3D* asset, enum MeshFlags flags,
-                     float r, float g, float b, float metal, float roughness) {
+                     Vec3 color, float metal, float rough) {
     int ok = 0;
     if (!(asset->pbrParams = pbr_material_params_new())) {
         fprintf(stderr, "Error: interface: can't create pbr params\n");
     } else {
-        material_param_set_vec3_elems(&asset->pbrParams->albedo, r, g, b);
+        material_param_set_vec3_constant(&asset->pbrParams->albedo, color);
         material_param_set_float_constant(&asset->pbrParams->metalness, metal);
-        material_param_set_float_constant(&asset->pbrParams->roughness, roughness);
+        material_param_set_float_constant(&asset->pbrParams->roughness, rough);
         asset->mat = pbr_material_new(flags, asset->pbrParams);
         ok = !!asset->mat;
     }
@@ -75,14 +76,14 @@ static int pbr_asset(struct Asset3D* asset, enum MeshFlags flags,
 }
 
 static int pbr_asset_tex(struct Asset3D* asset, enum MeshFlags flags,
-                         GLuint tex, float metal, float roughness) {
+                         GLuint tex, float metal, float rough) {
     int ok = 0;
     if (!(asset->pbrParams = pbr_material_params_new())) {
         fprintf(stderr, "Error: interface: can't create pbr params\n");
     } else {
         material_param_set_vec3_texture(&asset->pbrParams->albedo, tex);
         material_param_set_float_constant(&asset->pbrParams->metalness, metal);
-        material_param_set_float_constant(&asset->pbrParams->roughness, roughness);
+        material_param_set_float_constant(&asset->pbrParams->roughness, rough);
         asset->mat = pbr_material_new(flags, asset->pbrParams);
         ok = !!asset->mat;
     }
@@ -93,8 +94,8 @@ static int pbr_asset_tex(struct Asset3D* asset, enum MeshFlags flags,
     return ok;
 }
 
-int stone_create(struct Stone3D* stone, enum InterfaceTheme theme,
-                 float radius, float r, float g, float b) {
+static int stone_create(struct Stone3D* stone, char white, float radius,
+                        struct InterfaceTheme* theme) {
     struct Mesh s;
     int ok = 0;
 
@@ -104,15 +105,22 @@ int stone_create(struct Stone3D* stone, enum InterfaceTheme theme,
     } else if (!(stone->geom.va = vertex_array_new(&s))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
     } else {
-        switch (theme) {
+        switch (theme->style) {
             case W_UI_PURE:
-                ok = solid_asset(&stone->geom, s.flags, r, g, b);
+                ok = solid_asset(&stone->geom, s.flags,
+                                 white ? theme->wStoneColor
+                                       : theme->bStoneColor);
                 break;
             case W_UI_NICE:
-                ok = pbr_asset(&stone->geom, s.flags, r, g, b, 0.1, 0.5);
+                ok = pbr_asset(&stone->geom, s.flags,
+                               white ? theme->wStoneColor
+                                     : theme->bStoneColor,
+                               theme->stoneMetal, theme->stoneRoughness);
                 break;
             default:
-                ok = solid_asset(&stone->geom, s.flags, r, g, b);
+                ok = solid_asset(&stone->geom, s.flags,
+                                 white ? theme->wStoneColor
+                                       : theme->bStoneColor);
                 break;
         }
     }
@@ -123,27 +131,28 @@ int stone_create(struct Stone3D* stone, enum InterfaceTheme theme,
     return ok;
 }
 
-int board_create(struct Board3D* board, enum InterfaceTheme theme,
-                 unsigned int size, float gridScale) {
+static int board_create(struct Board3D* board, unsigned int size,
+                        struct InterfaceTheme* theme) {
     struct Mesh box;
     GLuint tex;
     int ok = 0;
 
-    board->thickness = 0.01;
-    board->gridScale = gridScale;
+    board->thickness = theme->boardThickness;
+    board->gridScale = theme->gridScale;
     if (!make_box(&box, 1., 1., board->thickness)) {
         fprintf(stderr, "Error: interface: can't create box\n");
     } else if (!(board->geom.va = vertex_array_new(&box))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
-    } else if (!(tex = grid_gen(size, gridScale))) {
+    } else if (!(tex = grid_gen(size, theme->gridScale, theme->wood))) {
         fprintf(stderr, "Error: interface: can't create grid\n");
     } else {
-        switch (theme) {
+        switch (theme->style) {
             case W_UI_PURE:
                 ok = solid_asset_tex(&board->geom, box.flags, tex);
                 break;
             case W_UI_NICE:
-                ok = pbr_asset_tex(&board->geom, box.flags, tex, 0.1, 0.3);
+                ok = pbr_asset_tex(&board->geom, box.flags, tex,
+                                   theme->boardMetal, theme->boardRoughness);
                 break;
             default:
                 ok = solid_asset_tex(&board->geom, box.flags, tex);
@@ -157,21 +166,47 @@ int board_create(struct Board3D* board, enum InterfaceTheme theme,
     return ok;
 }
 
-int pointer_create(struct Asset3D* pointer, enum InterfaceTheme theme,
-                   float size) {
+static int pointer_create(struct Asset3D* pointer,
+                          struct InterfaceTheme* theme) {
     struct Mesh cube;
     int ok = 0;
 
-    if (!make_box(&cube, size, size, size)) {
+    if (!make_box(&cube,
+                  theme->pointerSize,
+                  theme->pointerSize,
+                  theme->pointerSize)) {
         fprintf(stderr, "Error: interface: can't create cursor\n");
     } else if (!(pointer->va = vertex_array_new(&cube))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
     } else {
-        ok = solid_asset(pointer, cube.flags, 0, 0, 0);
+        ok = solid_asset(pointer, cube.flags, theme->pointerColor);
     }
     mesh_free(&cube);
     if (!ok) {
         vertex_array_free(pointer->va);
     }
     return ok;
+}
+
+int assets_create(struct Board3D* board,
+                  struct Stone3D* bStone,
+                  struct Stone3D* wStone,
+                  struct Asset3D* pointer,
+                  unsigned int boardSize,
+                  struct InterfaceTheme* theme) {
+    float radius;
+    int bc, bsc, wsc, pc;
+
+    radius = 1. / (2. * (float)boardSize) * theme->gridScale;
+    theme->pointerSize = radius / 2.;
+    if (       !(bc = board_create(board, boardSize, theme))
+            || !(bsc = stone_create(bStone, 0, radius, theme))
+            || !(wsc = stone_create(wStone, 1, radius, theme))
+            || !(pc = pointer_create(pointer, theme))) {
+        if (bc) asset_free(&board->geom);
+        if (bsc) asset_free(&bStone->geom);
+        if (wsc) asset_free(&wStone->geom);
+        return 0;
+    }
+    return 1;
 }

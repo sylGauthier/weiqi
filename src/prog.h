@@ -13,7 +13,6 @@ struct Prog {
     unsigned int handicap;
     enum PlayerType white;
     enum PlayerType black;
-    enum InterfaceTheme theme;
 
     const char* gtpCmd;
     const char* gameFile;

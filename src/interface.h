@@ -15,6 +15,8 @@ enum InterfaceStatus {
 };
 
 struct Interface {
+    struct InterfaceTheme theme;
+
     struct Scene scene;
     struct Camera camera;
     struct Node* camNode;
@@ -33,13 +35,11 @@ struct Interface {
     char pass;
 
     enum InterfaceStatus status;
-    enum InterfaceTheme theme;
 
     pthread_t thread;
 };
 
-int interface_init(struct Interface* ui, enum InterfaceTheme theme,
-                   struct Weiqi* weiqi);
+int interface_init(struct Interface* ui, struct Weiqi* weiqi);
 
 void interface_free(struct Interface* ui);
 void interface_wait(struct Interface* ui);
