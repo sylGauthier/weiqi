@@ -12,7 +12,7 @@
 #include "interface.h"
 
 #define SUN_DIRECTION   {-0.3, 0, -1}
-#define SUN_COLOR       {0.8, 0.8, 0.55}
+#define SUN_COLOR       {0.8, 0.8, 0.8}
 #define AMBIENT_COLOR   {5, 5, 5}
 
 void update_node(struct Scene* scene, struct Node* n, void* data) {
