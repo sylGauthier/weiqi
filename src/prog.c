@@ -41,7 +41,7 @@ static int player_init(struct Prog* prog, struct Player* player, enum PlayerType
 
 static void load_default_theme(struct InterfaceTheme* theme) {
     theme->style = W_UI_NICE;
-    theme->wood = "textures/wood.png";
+    theme->wood = "wood.png";
     SET_VEC3(theme->bStoneColor, 0, 0, 0);
     SET_VEC3(theme->wStoneColor, 1, 1, 1);
     SET_VEC3(theme->pointerColor, 0, 0, 0);
