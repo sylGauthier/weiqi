@@ -195,7 +195,7 @@ int assets_create(struct Board3D* board,
                   unsigned int boardSize,
                   struct InterfaceTheme* theme) {
     float radius;
-    int bc, bsc, wsc, pc;
+    int bc = 0, bsc = 0, wsc = 0, pc = 0;
 
     radius = 1. / (2. * (float)boardSize) * theme->gridScale;
     theme->pointerSize = radius / 2.;
