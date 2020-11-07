@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include <3dmr/img/png.h>
 
@@ -83,19 +84,26 @@ static void draw_grid(unsigned char* buf, unsigned int size, float scale) {
     }
 }
 
-static int load_tex(const char* filename, unsigned char** buffer) {
+static int load_tex(const char* dir, const char* name, unsigned char** buffer) {
     GLint ralign = 0;
-    unsigned int width, height, channels;
+    unsigned int width, height, channels, ok = 0;
+    char* filename;
+
+    if (!(filename = malloc(strlen(dir) + strlen(name) + 1))) return 0;
+    strcpy(filename, dir);
+    strcpy(filename + strlen(dir), name);
+    filename[strlen(dir) + strlen(name)] = '\0';
 
     glGetIntegerv(GL_UNPACK_ALIGNMENT, &ralign);
     if (png_read_file(filename, ralign,
                       &width, &height, &channels, 3, 1, buffer)) {
         if (width == GRID_RES && height == GRID_RES) {
-            return 1;
+            ok = 1;
         }
-        free(*buffer);
+        if (!ok) free(*buffer);
     }
-    return 0;
+    free(filename);
+    return ok;
 }
 
 static int load_color(unsigned char r, unsigned char g, unsigned char b,
@@ -117,7 +125,10 @@ GLuint grid_gen(unsigned int boardSize, float scale, const char* woodTex) {
     GLuint tex = 0;
 
     if (woodTex) {
-        if (!load_tex(woodTex, &texBuf)) return 0;
+        if (       !load_tex(W_TEXTURE_DIR, woodTex, &texBuf)
+                && !load_tex(W_TEXTURE_SRC, woodTex, &texBuf)) {
+            return 0;
+        }
     } else {
         if (!load_color(129, 115, 37, &texBuf)) return 0;
     }
