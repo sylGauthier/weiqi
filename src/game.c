@@ -137,25 +137,18 @@ static char* get_line(FILE* f) {
     return res;
 }
 
-static int get_cmd(FILE* f, char** cmd, char** arg) {
+static char** get_cmd(FILE* f) {
     char *str;
     unsigned int len;
 
     do {
-        if (!(str = get_line(f))) return 0;
+        if (!(str = get_line(f))) return NULL;
     } while ((len = strlen(str)) == 0);
-    *cmd = str;
-    if ((*arg = strchr(str, ' '))) {
-        while (*arg[0] == ' ') {
-            (*arg)[0] = '\0';
-            (*arg)++;
-        }
-    }
-    return 1;
+    return split_cmd(str);
 }
 
 int game_load_file(struct GameContext* ctx, const char* name) {
-    char *cmd, *arg;
+    char **cmd;
     char start = 0, end = 0, boardSize = 19, handicap = 0, ok = 1;
     FILE* f;
 
@@ -164,29 +157,30 @@ int game_load_file(struct GameContext* ctx, const char* name) {
         return 0;
     }
     while (!start) {
-        if (!get_cmd(f, &cmd, &arg)) {
+        if (!(cmd = get_cmd(f)) || !cmd[0]) {
             fprintf(stderr, "Error: unexpected end of file\n");
             return 0;
-        } else if (!strcmp(cmd, "size")) {
-            if (!arg) {
+        } else if (!strcmp(cmd[0], "size")) {
+            if (!cmd[1]) {
                 fprintf(stderr, "Error: missing arg to 'size' command\n");
                 ok = 0;
             } else {
-                boardSize = strtol(arg, NULL, 10);
+                boardSize = strtol(cmd[1], NULL, 10);
             }
-        } else if (!strcmp(cmd, "handicap")) {
-            if (!arg) {
+        } else if (!strcmp(cmd[0], "handicap")) {
+            if (!cmd[1]) {
                 fprintf(stderr, "Error: missing arg to 'handicap' command\n");
                 ok = 0;
             } else {
-                handicap = strtol(arg, NULL, 10);
+                handicap = strtol(cmd[1], NULL, 10);
             }
-        } else if (!strcmp(cmd, "start")) {
+        } else if (!strcmp(cmd[0], "start")) {
             start = 1;
         } else {
-            fprintf(stderr, "Error: unknown command: %s\n", cmd);
+            fprintf(stderr, "Error: unknown command: %s\n", cmd[0]);
             ok = 0;
         }
+        if (cmd) free(cmd[0]);
         free(cmd);
         if (!ok) {
             fclose(f);
@@ -197,48 +191,45 @@ int game_load_file(struct GameContext* ctx, const char* name) {
         fprintf(stderr, "Error: game init failed\n");
         return 0;
     }
-    while (!end) {
-        if (!get_cmd(f, &cmd, &arg)) {
+    while (!end && ok) {
+        if (!(cmd = get_cmd(f)) || !cmd[0]) {
             end = 1;
-        } else if (!strcmp(cmd, "white")) {
-            if (!arg) {
+        } else if (!strcmp(cmd[0], "white")) {
+            if (!cmd[1]) {
                 fprintf(stderr, "Error: missing arg\n");
                 ok = 0;
-                break;
             } else {
                 unsigned int row, col;
                 char pass;
-                if (       !str_to_move(&row, &col, &pass, arg)
+                if (       !str_to_move(&row, &col, &pass, cmd[1])
                         || weiqi_register_move(&ctx->weiqi, 
                                                W_WHITE, pass ? W_PASS : W_PLAY,
                                                row, col) != W_NO_ERROR) {
-                    fprintf(stderr, "file: invalid move: %s\n", arg);
+                    fprintf(stderr, "file: invalid move: %s\n", cmd[1]);
                     ok = 0;
-                    break;
                 }
             }
-        } else if (!strcmp(cmd, "black")) {
-            if (!arg) {
+        } else if (!strcmp(cmd[0], "black")) {
+            if (!cmd[1]) {
                 fprintf(stderr, "Error: missing arg\n");
                 ok = 0;
-                break;
             } else {
                 unsigned int row, col;
                 char pass;
-                if (       !str_to_move(&row, &col, &pass, arg)
+                if (       !str_to_move(&row, &col, &pass, cmd[1])
                         || weiqi_register_move(&ctx->weiqi,
                                                W_BLACK, pass ? W_PASS : W_PLAY,
                                                row, col) != W_NO_ERROR) {
-                    fprintf(stderr, "file: invalid move: %s\n", arg);
+                    fprintf(stderr, "file: invalid move: %s\n", cmd[1]);
                     ok = 0;
-                    break;
                 }
             }
         } else {
-            fprintf(stderr, "Error: unknown command: %s\n", cmd);
+            fprintf(stderr, "Error: unknown command: %s\n", cmd[0]);
             ok = 0;
-            break;
         }
+        if (cmd) free(cmd[0]);
+        free(cmd);
     }
     if (!ok) game_free(ctx);
     fclose(f);
