@@ -3,6 +3,7 @@
 
 #include "game.h"
 #include "utils.h"
+#include "cmd.h"
 
 int game_init(struct GameContext* ctx, char boardSize, char handicap) {
     if (boardSize < 5 || boardSize > 25) {
@@ -113,40 +114,6 @@ int game_run(struct GameContext* ctx) {
     return 1;
 }
 
-static char* get_line(FILE* f) {
-    char c, *res = NULL;
-    unsigned int size = 0, incr = 256, cur = 0;
-
-    while ((c = fgetc(f)) != EOF) {
-        if (cur >= size) {
-            char* tmp;
-            size += incr;
-            if (!(tmp = realloc(res, size))) {
-                free(res);
-                return NULL;
-            }
-            res = tmp;
-        }
-        if (c == '\n') break;
-        res[cur++] = c;
-    }
-    if (res) {
-        if (cur >= size) cur = size - 1;
-        res[cur] = '\0';
-    }
-    return res;
-}
-
-static char** get_cmd(FILE* f) {
-    char *str;
-    unsigned int len;
-
-    do {
-        if (!(str = get_line(f))) return NULL;
-    } while ((len = strlen(str)) == 0);
-    return split_cmd(str);
-}
-
 int game_load_file(struct GameContext* ctx, const char* name) {
     char **cmd;
     char start = 0, end = 0, boardSize = 19, handicap = 0, ok = 1;
@@ -157,7 +124,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
         return 0;
     }
     while (!start) {
-        if (!(cmd = get_cmd(f)) || !cmd[0]) {
+        if (!(cmd = cmd_get(f)) || !cmd[0]) {
             fprintf(stderr, "Error: unexpected end of file\n");
             return 0;
         } else if (!strcmp(cmd[0], "size")) {
@@ -180,8 +147,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
             fprintf(stderr, "Error: unknown command: %s\n", cmd[0]);
             ok = 0;
         }
-        if (cmd) free(cmd[0]);
-        free(cmd);
+        cmd_free(cmd);
         if (!ok) {
             fclose(f);
             return 0;
@@ -192,7 +158,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
         return 0;
     }
     while (!end && ok) {
-        if (!(cmd = get_cmd(f)) || !cmd[0]) {
+        if (!(cmd = cmd_get(f)) || !cmd[0]) {
             end = 1;
         } else if (!strcmp(cmd[0], "white")) {
             if (!cmd[1]) {
@@ -228,8 +194,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
             fprintf(stderr, "Error: unknown command: %s\n", cmd[0]);
             ok = 0;
         }
-        if (cmd) free(cmd[0]);
-        free(cmd);
+        cmd_free(cmd);
     }
     if (!ok) game_free(ctx);
     fclose(f);

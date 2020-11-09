@@ -3,25 +3,41 @@
 
 #include "game.h"
 
+#define W_NUM_ENGINES 32
+
 enum PlayerType {
     W_HUMAN,
     W_GTP_LOCAL
 };
 
+struct Engine {
+    char* name;
+    char* command;
+};
+
+struct PlayerConf {
+    enum PlayerType type;
+    char* gtpCmd;
+};
+
 struct Prog {
     unsigned int boardSize;
     unsigned int handicap;
-    enum PlayerType white;
-    enum PlayerType black;
+    struct PlayerConf white;
+    struct PlayerConf black;
 
     const char* gtpCmd;
     const char* gameFile;
 
     struct GameContext ctx;
+    struct Engine engines[W_NUM_ENGINES];
+    unsigned int numEngines;
 };
 
 int prog_load_defaults(struct Prog* prog);
+int prog_load_config(struct Prog* prog);
 int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv);
 int prog_init(struct Prog* prog);
+void prog_free(struct Prog* prog);
 
 #endif

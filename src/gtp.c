@@ -3,6 +3,7 @@
 
 #include "gtp.h"
 #include "utils.h"
+#include "cmd.h"
 #include "pipe_proc.h"
 
 struct GTPConnection {
@@ -80,7 +81,8 @@ int gtp_local_engine_init(struct Player* player, const char* cmd) {
     int pid, ok = 1;
     char** splitcmd;
 
-    if (!(splitcmd = split_cmd(cmd))) {
+    fprintf(stderr, "Info: gtp engine: %s\n", cmd);
+    if (!(splitcmd = cmd_split(cmd))) {
         fprintf(stderr, "Error: can't split command\n");
         return 0;
     }
@@ -94,8 +96,7 @@ int gtp_local_engine_init(struct Player* player, const char* cmd) {
     } else {
         ok = gtp_init(player, in, out);
     }
-    free(splitcmd[0]);
-    free(splitcmd);
+    cmd_free(splitcmd);
     return ok;
 }
 
