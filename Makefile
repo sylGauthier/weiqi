@@ -33,3 +33,7 @@ install: weiqi $(TEXFILES)
 	mkdir -p $(BIN_DIR) $(TEXTURE_DIR)
 	cp weiqi $(BIN_DIR)
 	cp $(TEXFILES) $(TEXTURE_DIR)
+	if [ ! -f ~/.weiqi ] ; then \
+		touch ~/.weiqi ; \
+		command -v gnugo && echo engine gnugo \"`which gnugo` --mode gtp\" >> ~/.weiqi ; \
+	fi

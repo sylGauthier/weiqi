@@ -18,8 +18,9 @@ static void print_help(const char* cmd) {
            cmd);
 }
 
-static int player_init(struct Prog* prog, struct Player* player, enum PlayerType type) {
-    switch (type) {
+static int player_init(struct Prog* prog, struct Player* player,
+                       struct PlayerConf* conf) {
+    switch (conf->type) {
         case W_HUMAN:
             if (!human_init(player, &prog->ctx.ui)) {
                 fprintf(stderr, "Error: human player init failed\n");
@@ -27,7 +28,7 @@ static int player_init(struct Prog* prog, struct Player* player, enum PlayerType
             }
             break;
         case W_GTP_LOCAL:
-            if (!gtp_local_engine_init(player, prog->gtpCmd)) {
+            if (!gtp_local_engine_init(player, conf->gtpCmd)) {
                 fprintf(stderr, "Error: GTP engine init failed\n");
                 return 0;
             }
@@ -57,12 +58,21 @@ static void load_default_theme(struct InterfaceTheme* theme) {
 int prog_load_defaults(struct Prog* prog) {
     prog->boardSize = 19;
     prog->handicap = 0;
-    prog->white = W_GTP_LOCAL;
-    prog->black = W_HUMAN;
-    prog->gtpCmd = "/usr/bin/gnugo --mode gtp";
+    prog->black.type = W_HUMAN;
+    prog->white.type = W_HUMAN;
     prog->gameFile = NULL;
     load_default_theme(&prog->ctx.ui.theme);
     return 1;
+}
+
+static char* find_engine(struct Prog* prog, const char* name) {
+    unsigned int i;
+    for (i = 0; i < prog->numEngines; i++) {
+        if (!strcmp(name, prog->engines[i].name)) {
+            return prog->engines[i].command;
+        }
+    }
+    return NULL;
 }
 
 int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
@@ -77,12 +87,13 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 return 0;
             }
             if (!strcmp(argv[i + 1], "human")) {
-                prog->white = W_HUMAN;
-            } else if (!strcmp(argv[i + 1], "gnugo")) {
-                prog->white = W_GTP_LOCAL;
+                prog->white.type = W_HUMAN;
             } else {
-                print_help(argv[0]);
-                return 0;
+                prog->white.type = W_GTP_LOCAL;
+                if (!(prog->white.gtpCmd = find_engine(prog, argv[i + 1]))) {
+                    fprintf(stderr, "Error: invalid GTP engine: %s\n", argv[i + 1]);
+                    return 0;
+                }
             }
             i++;
         } else if (!strcmp(arg, "-b") || !strcmp(arg, "--black")) {
@@ -91,12 +102,13 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 return 0;
             }
             if (!strcmp(argv[i + 1], "human")) {
-                prog->black = W_HUMAN;
-            } else if (!strcmp(argv[i + 1], "gnugo")) {
-                prog->black = W_GTP_LOCAL;
+                prog->black.type = W_HUMAN;
             } else {
-                print_help(argv[0]);
-                return 0;
+                prog->black.type = W_GTP_LOCAL;
+                if (!(prog->black.gtpCmd = find_engine(prog, argv[i + 1]))) {
+                    fprintf(stderr, "Error: invalid GTP engine: %s\n", argv[i + 1]);
+                    return 0;
+                }
             }
             i++;
         } else if (!strcmp(arg, "-s") || !strcmp(arg, "--size")) {
@@ -162,11 +174,20 @@ int prog_init(struct Prog* prog) {
         fprintf(stderr, "Error: game init failed\n");
         return 0;
     }
-    if (       !player_init(prog, &prog->ctx.white, prog->white)
-            || !player_init(prog, &prog->ctx.black, prog->black)) {
+    if (       !player_init(prog, &prog->ctx.white, &prog->white)
+            || !player_init(prog, &prog->ctx.black, &prog->black)) {
         fprintf(stderr, "Error: player init failed\n");
         game_free(&prog->ctx);
         return 0;
     }
     return 1;
+}
+
+void prog_free(struct Prog* prog) {
+    unsigned int i;
+
+    for (i = 0; i < prog->numEngines; i++) {
+        free(prog->engines[i].name);
+        free(prog->engines[i].command);
+    }
 }
