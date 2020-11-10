@@ -98,6 +98,7 @@ static int stone_create(struct Stone3D* stone, char white, float radius,
                         struct InterfaceTheme* theme) {
     struct Mesh s;
     int ok = 0;
+    struct AssetParams* params = white ? &theme->wStone : &theme->bStone;
 
     stone->radius = radius;
     if (!make_uvsphere(&s, radius, 16, 16)) {
@@ -107,20 +108,15 @@ static int stone_create(struct Stone3D* stone, char white, float radius,
     } else {
         switch (theme->style) {
             case W_UI_PURE:
-                ok = solid_asset(&stone->geom, s.flags,
-                                 white ? theme->wStoneColor
-                                       : theme->bStoneColor);
+                ok = solid_asset(&stone->geom, s.flags, params->color);
                 break;
             case W_UI_NICE:
                 ok = pbr_asset(&stone->geom, s.flags,
-                               white ? theme->wStoneColor
-                                     : theme->bStoneColor,
-                               theme->stoneMetal, theme->stoneRoughness);
+                               params->color, params->metalness,
+                               params->roughness);
                 break;
             default:
-                ok = solid_asset(&stone->geom, s.flags,
-                                 white ? theme->wStoneColor
-                                       : theme->bStoneColor);
+                ok = solid_asset(&stone->geom, s.flags, params->color);
                 break;
         }
     }
@@ -152,7 +148,8 @@ static int board_create(struct Board3D* board, unsigned int size,
                 break;
             case W_UI_NICE:
                 ok = pbr_asset_tex(&board->geom, box.flags, tex,
-                                   theme->boardMetal, theme->boardRoughness);
+                                   theme->board.metalness,
+                                   theme->board.roughness);
                 break;
             default:
                 ok = solid_asset_tex(&board->geom, box.flags, tex);
@@ -179,7 +176,7 @@ static int pointer_create(struct Asset3D* pointer,
     } else if (!(pointer->va = vertex_array_new(&cube))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
     } else {
-        ok = solid_asset(pointer, cube.flags, theme->pointerColor);
+        ok = solid_asset(pointer, cube.flags, theme->pointer.color);
     }
     mesh_free(&cube);
     if (!ok) {

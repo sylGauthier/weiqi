@@ -20,6 +20,52 @@ static int add_engine(struct Prog* prog, const char* name, const char* cmd) {
     return 1;
 }
 
+static int stone_config(struct Prog* prog, char** cmd) {
+    struct AssetParams* params;
+
+    if (!cmd[0]) {
+        fprintf(stderr, "Error: config: stone requires at least one argument");
+        return 0;
+    } else if (!strcmp(cmd[0], "black")) {
+        params = &prog->ctx.ui.theme.bStone;
+    } else if (!strcmp(cmd[0], "white")) {
+        params = &prog->ctx.ui.theme.wStone;
+    } else {
+        fprintf(stderr, "Error: config: stone must be followd by color\n");
+        return 0;
+    }
+    if (!cmd[1]) {
+        fprintf(stderr, "Error: config: stone: missing argument\n");
+        return 0;
+    } else if (!strcmp(cmd[1], "color")) {
+        if (!cmd[2] || !cmd[3] || !cmd[4]) {
+            fprintf(stderr, "Error: config: stone: color: missing argument\n");
+            return 0;
+        }
+        params->color[0] = strtof(cmd[2], NULL);
+        params->color[1] = strtof(cmd[3], NULL);
+        params->color[2] = strtof(cmd[4], NULL);
+    } else if (!strcmp(cmd[1], "metalness")) {
+        if (!cmd[2]) {
+            fprintf(stderr, "Error: config: stone: metalness: "
+                            "missing argument\n");
+            return 0;
+        }
+        params->metalness = strtof(cmd[2], NULL);
+    } else if (!strcmp(cmd[1], "roughness")) {
+        if (!cmd[2]) {
+            fprintf(stderr, "Error: config: stone: roughness: "
+                            "missing argument\n");
+            return 0;
+        }
+        params->roughness = strtof(cmd[2], NULL);
+    } else {
+        fprintf(stderr, "Error: config: stone: unknown command: %s\n", cmd[1]);
+        return 0;
+    }
+    return 1;
+}
+
 int prog_load_config(struct Prog* prog) {
     FILE* f;
     char** cmd;
@@ -45,6 +91,8 @@ int prog_load_config(struct Prog* prog) {
             } else {
                 ok = add_engine(prog, cmd[1], cmd[2]);
             }
+        } else if (!strcmp(cmd[0], "stone")) {
+            ok = stone_config(prog, cmd + 1);
         } else {
             fprintf(stderr, "Warning: config: ignoring unknown command: %s\n",
                     cmd[0]);
