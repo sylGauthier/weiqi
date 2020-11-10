@@ -25,8 +25,8 @@ weiqi: $(OBJECTS)
 clean:
 	rm -rf $(OBJECTS) weiqi
 
-$(TEXTURE_SRC)/%.png: $(TEXTURE_SRC)
-	mkdir -p $(TEXTURE_SRC)
+$(TEXTURE_SRC)/%.png:
+	test -d $(TEXTURE_SRC) || mkdir -p $(TEXTURE_SRC)
 	wget pedantic.software/syg/files/$*.png -O $@
 
 install: weiqi $(TEXFILES)
