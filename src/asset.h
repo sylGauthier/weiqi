@@ -9,16 +9,21 @@ enum InterfaceStyle {
     W_UI_NICE
 };
 
+struct AssetParams {
+    Vec3 color;
+    float roughness;
+    float metalness;
+};
+
 struct InterfaceTheme {
     enum InterfaceStyle style;
     char* wood;
 
-    Vec3 bStoneColor;
-    Vec3 wStoneColor;
-    Vec3 pointerColor;
+    struct AssetParams bStone;
+    struct AssetParams wStone;
+    struct AssetParams pointer;
+    struct AssetParams board;
 
-    float boardRoughness, boardMetal;
-    float stoneRoughness, stoneMetal;
     float boardThickness, gridScale;
     float pointerSize;
 };

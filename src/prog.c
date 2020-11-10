@@ -43,13 +43,18 @@ static int player_init(struct Prog* prog, struct Player* player,
 static void load_default_theme(struct InterfaceTheme* theme) {
     theme->style = W_UI_NICE;
     theme->wood = "wood.png";
-    SET_VEC3(theme->bStoneColor, 0, 0, 0);
-    SET_VEC3(theme->wStoneColor, 1, 1, 1);
-    SET_VEC3(theme->pointerColor, 0, 0, 0);
-    theme->boardRoughness = 0.3;
-    theme->boardMetal = 0.;
-    theme->stoneRoughness = 0.3;
-    theme->stoneMetal = 0;
+
+    SET_VEC3(theme->bStone.color, 0, 0, 0);
+    SET_VEC3(theme->wStone.color, 1, 1, 1);
+    SET_VEC3(theme->pointer.color, 0, 0, 0);
+
+    theme->board.roughness = 0.3;
+    theme->board.metalness = 0.;
+    theme->wStone.roughness = 0.3;
+    theme->wStone.metalness = 0;
+    theme->bStone.roughness = 0.3;
+    theme->bStone.metalness = 0;
+
     theme->boardThickness = 0.01;
     theme->gridScale = 1. / 1.1;
     theme->pointerSize = 0.01;
