@@ -106,31 +106,31 @@ static int load_tex(const char* dir, const char* name, unsigned char** buffer) {
     return ok;
 }
 
-static int load_color(unsigned char r, unsigned char g, unsigned char b,
-                      unsigned char** buffer) {
+static int load_color(Vec3 color, unsigned char** buffer) {
     unsigned int i;
 
     if (!(*buffer = malloc(GRID_RES * GRID_RES * 3))) return 0;
 
     for (i = 0; i < GRID_RES * GRID_RES; i++) {
-        *buffer[3 * i + 0] = r;
-        *buffer[3 * i + 1] = g;
-        *buffer[3 * i + 2] = b;
+        (*buffer)[3 * i + 0] = 255 * color[0];
+        (*buffer)[3 * i + 1] = 255 * color[1];
+        (*buffer)[3 * i + 2] = 255 * color[2];
     }
     return 1;
 }
 
-GLuint grid_gen(unsigned int boardSize, float scale, const char* woodTex) {
+GLuint grid_gen(unsigned int boardSize, float scale, const char* woodTex,
+                Vec3 color) {
     unsigned char* texBuf;
     GLuint tex = 0;
 
-    if (woodTex) {
+    if (strcmp(woodTex, "none")) {
         if (       !load_tex(W_TEXTURE_DIR, woodTex, &texBuf)
                 && !load_tex(W_TEXTURE_SRC, woodTex, &texBuf)) {
             return 0;
         }
     } else {
-        if (!load_color(129, 115, 37, &texBuf)) return 0;
+        if (!load_color(color, &texBuf)) return 0;
     }
 
     draw_grid(texBuf, boardSize, scale);

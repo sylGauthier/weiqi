@@ -42,11 +42,12 @@ static int player_init(struct Prog* prog, struct Player* player,
 
 static void load_default_theme(struct InterfaceTheme* theme) {
     theme->style = W_UI_NICE;
-    theme->wood = "wood.png";
+    strcpy(theme->wood, "wood.png");
 
     SET_VEC3(theme->bStone.color, 0, 0, 0);
     SET_VEC3(theme->wStone.color, 1, 1, 1);
     SET_VEC3(theme->pointer.color, 0, 0, 0);
+    SET_VEC3(theme->board.color, 0.65, 0.58, 0.29);
 
     theme->board.roughness = 0.3;
     theme->board.metalness = 0.;
@@ -156,8 +157,19 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 print_help(argv[0]);
                 return 0;
             }
-            prog->ctx.ui.theme.wood = argv[i + 1];
+            strncpy(prog->ctx.ui.theme.wood, argv[i + 1],
+                    sizeof(prog->ctx.ui.theme.wood) - 1);
             i++;
+        } else if (!strcmp(arg, "--color")) {
+            if (i + 3 >= argc) {
+                print_help(argv[0]);
+                return 0;
+            }
+            SET_VEC3(prog->ctx.ui.theme.board.color,
+                     strtof(argv[i + 1], NULL),
+                     strtof(argv[i + 2], NULL),
+                     strtof(argv[i + 3], NULL));
+            i += 3;
         } else {
             print_help(argv[0]);
             return 0;

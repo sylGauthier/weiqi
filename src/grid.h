@@ -4,7 +4,9 @@
 #define GRID_RES 1024
 
 #include <3dmr/render/texture.h>
+#include <3dmr/math/linear_algebra.h>
 
-GLuint grid_gen(unsigned int boardSize, float gridScale, const char* tex);
+GLuint grid_gen(unsigned int boardSize, float gridScale, const char* tex,
+                Vec3 color);
 
 #endif
