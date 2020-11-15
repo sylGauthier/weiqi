@@ -17,7 +17,7 @@ struct AssetParams {
 
 struct InterfaceTheme {
     enum InterfaceStyle style;
-    char* wood;
+    char wood[128];
 
     struct AssetParams bStone;
     struct AssetParams wStone;

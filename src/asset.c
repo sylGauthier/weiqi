@@ -139,7 +139,8 @@ static int board_create(struct Board3D* board, unsigned int size,
         fprintf(stderr, "Error: interface: can't create box\n");
     } else if (!(board->geom.va = vertex_array_new(&box))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
-    } else if (!(tex = grid_gen(size, theme->gridScale, theme->wood))) {
+    } else if (!(tex = grid_gen(size, theme->gridScale, theme->wood,
+                                theme->board.color))) {
         fprintf(stderr, "Error: interface: can't create grid\n");
     } else {
         switch (theme->style) {
