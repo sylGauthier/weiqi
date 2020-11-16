@@ -34,6 +34,7 @@ struct Prog {
     unsigned int numEngines;
 };
 
+char* config_find_engine(struct Prog* prog, const char* name);
 int prog_load_defaults(struct Prog* prog);
 int prog_load_config(struct Prog* prog);
 int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv);

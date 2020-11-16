@@ -115,6 +115,44 @@ static int board_config(struct Prog* prog, char** cmd) {
     return 1;
 }
 
+char* config_find_engine(struct Prog* prog, const char* name) {
+    unsigned int i;
+    for (i = 0; i < prog->numEngines; i++) {
+        if (!strcmp(name, prog->engines[i].name)) {
+            return prog->engines[i].command;
+        }
+    }
+    return NULL;
+}
+
+static int player_config(struct Prog* prog, char** cmd) {
+    struct PlayerConf* conf;
+
+    if (!cmd[0] || !cmd[1]) {
+        fprintf(stderr, "Error: config: player requires at least 1 argument\n");
+        return 0;
+    }
+    if (!strcmp(cmd[0], "black")) {
+        conf = &prog->black;
+    } else if (!strcmp(cmd[0], "white")) {
+        conf = &prog->white;
+    } else {
+        fprintf(stderr, "Error: config: player: invalid arg: %s\n", cmd[1]);
+        return 0;
+    }
+
+    if (!strcmp(cmd[1], "human")) {
+        conf->type = W_HUMAN;
+    } else {
+        conf->type = W_GTP_LOCAL;
+        if (!(conf->gtpCmd = config_find_engine(prog, cmd[1]))) {
+            fprintf(stderr, "Error: config: unknown engine: %s\n", cmd[1]);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 int prog_load_config(struct Prog* prog) {
     FILE* f;
     char** cmd;
@@ -152,6 +190,8 @@ int prog_load_config(struct Prog* prog) {
                 fprintf(stderr, "Error: config: 'handicap' needs 1 argument\n");
                 ok = 0;
             }
+        } else if (!strcmp(cmd[0], "player")) {
+            ok = player_config(prog, cmd + 1);
         } else {
             fprintf(stderr, "Warning: config: ignoring unknown command: %s\n",
                     cmd[0]);
@@ -159,10 +199,6 @@ int prog_load_config(struct Prog* prog) {
         cmd_free(cmd);
     }
 
-    if (prog->numEngines) {
-        prog->white.type = W_GTP_LOCAL;
-        prog->white.gtpCmd = prog->engines[0].command;
-    }
     fclose(f);
     free(confpath);
     return ok;

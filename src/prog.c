@@ -71,16 +71,6 @@ int prog_load_defaults(struct Prog* prog) {
     return 1;
 }
 
-static char* find_engine(struct Prog* prog, const char* name) {
-    unsigned int i;
-    for (i = 0; i < prog->numEngines; i++) {
-        if (!strcmp(name, prog->engines[i].name)) {
-            return prog->engines[i].command;
-        }
-    }
-    return NULL;
-}
-
 int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
     unsigned int i;
 
@@ -96,7 +86,7 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 prog->white.type = W_HUMAN;
             } else {
                 prog->white.type = W_GTP_LOCAL;
-                if (!(prog->white.gtpCmd = find_engine(prog, argv[i + 1]))) {
+                if (!(prog->white.gtpCmd = config_find_engine(prog, argv[i + 1]))) {
                     fprintf(stderr, "Error: invalid GTP engine: %s\n", argv[i + 1]);
                     return 0;
                 }
@@ -111,7 +101,7 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 prog->black.type = W_HUMAN;
             } else {
                 prog->black.type = W_GTP_LOCAL;
-                if (!(prog->black.gtpCmd = find_engine(prog, argv[i + 1]))) {
+                if (!(prog->black.gtpCmd = config_find_engine(prog, argv[i + 1]))) {
                     fprintf(stderr, "Error: invalid GTP engine: %s\n", argv[i + 1]);
                     return 0;
                 }
