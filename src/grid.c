@@ -31,7 +31,7 @@ static float circle(int i, int j, int radius) {
 }
 
 static void draw_dot(unsigned char* buf, unsigned int size, float scale,
-                     unsigned int row, unsigned int col) {
+                     unsigned char row, unsigned char col) {
     unsigned int x = (((((float) col) / ((float) (size - 1))) - 0.5)
                      * scale + 0.5) * GRID_RES;
     unsigned int y = (((((float) row) / ((float) (size - 1))) - 0.5)
@@ -119,7 +119,7 @@ static int load_color(Vec3 color, unsigned char** buffer) {
     return 1;
 }
 
-GLuint grid_gen(unsigned int boardSize, float scale, const char* woodTex,
+GLuint grid_gen(unsigned char boardSize, float scale, const char* woodTex,
                 Vec3 color) {
     unsigned char* texBuf;
     GLuint tex = 0;

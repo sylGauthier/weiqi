@@ -136,7 +136,7 @@ void close_callback(struct Viewer* viewer, void* data) {
 }
 
 static void render_stone(struct Interface* ui, enum WeiqiColor color,
-                         unsigned int row, unsigned int col) {
+                         unsigned char row, unsigned char col) {
     Mat4 model;
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
@@ -161,7 +161,7 @@ static void render_pointer(struct Interface* ui) {
     Mat4 model;
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
-    unsigned int col = ui->cursorPos[0], row = ui->cursorPos[1];
+    unsigned char col = ui->cursorPos[0], row = ui->cursorPos[1];
 
     load_id4(model);
     load_id3(invNormal);
@@ -179,7 +179,7 @@ static void render_pointer(struct Interface* ui) {
 static void render_board(struct Interface* ui) {
     Mat4 model;
     Mat3 invNormal;
-    unsigned int row, col, s;
+    unsigned char row, col, s;
 
     load_id4(model);
     load_id3(invNormal);
@@ -302,7 +302,7 @@ void interface_wait(struct Interface* ui) {
 
 int interface_get_move(struct Interface* ui,
                        enum WeiqiColor color, enum MoveAction* action,
-                       unsigned int* row, unsigned int* col) {
+                       unsigned char* row, unsigned char* col) {
     ui->status = W_UI_SELECT;
 
     while (ui->status == W_UI_SELECT) {

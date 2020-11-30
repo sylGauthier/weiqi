@@ -50,7 +50,7 @@ int assets_create(struct Board3D* board,
                   struct Stone3D* bStone,
                   struct Stone3D* wStone,
                   struct Asset3D* pointer,
-                  unsigned int boardSize,
+                  unsigned char boardSize,
                   struct InterfaceTheme* theme);
 
 void asset_init(struct Asset3D* asset);

@@ -12,7 +12,7 @@ struct StoneList* list_new() {
     return ret;
 }
 
-int list_push(struct StoneList** list, unsigned int row, unsigned int col) {
+int list_push(struct StoneList** list, unsigned char row, unsigned char col) {
     struct StoneList* newHead;
     if ((newHead = list_new())) {
         newHead->row = row;
@@ -24,7 +24,7 @@ int list_push(struct StoneList** list, unsigned int row, unsigned int col) {
     return 0;
 }
 
-int list_pop(struct StoneList** list, unsigned int* row, unsigned int* col) {
+int list_pop(struct StoneList** list, unsigned char* row, unsigned char* col) {
     struct StoneList* tmp;
     if (*list) {
         tmp = *list;
@@ -38,7 +38,7 @@ int list_pop(struct StoneList** list, unsigned int* row, unsigned int* col) {
 }
 
 void list_flush(struct StoneList** list) {
-    unsigned int row, col;
+    unsigned char row, col;
 
     while (*list) {
         list_pop(list, &row, &col);

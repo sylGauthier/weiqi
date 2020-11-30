@@ -21,8 +21,8 @@ struct PlayerConf {
 };
 
 struct Prog {
-    unsigned int boardSize;
-    unsigned int handicap;
+    unsigned char boardSize;
+    unsigned char handicap;
     struct PlayerConf white;
     struct PlayerConf black;
 

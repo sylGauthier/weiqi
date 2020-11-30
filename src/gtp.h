@@ -9,10 +9,10 @@ int gtp_local_engine_init(struct Player* player, const char* cmd);
 
 int gtp_send_move(struct Player* player,
                   enum WeiqiColor color, enum MoveAction action,
-                  unsigned int row, unsigned int col);
+                  unsigned char row, unsigned char col);
 int gtp_get_move(struct Player* player,
                  enum WeiqiColor color, enum MoveAction* action,
-                 unsigned int* row, unsigned int* col);
+                 unsigned char* row, unsigned char* col);
 
 int gtp_reset(struct Player* player);
 void gtp_free(struct Player* player);

@@ -30,7 +30,7 @@ void game_free(struct GameContext* ctx) {
 
 static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
     struct Player *p1, *p2;
-    unsigned int row, col;
+    unsigned char row, col;
     char move[5];
     enum MoveAction action = W_PLAY;
     enum WeiqiError err;
@@ -165,7 +165,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
                 fprintf(stderr, "Error: missing arg\n");
                 ok = 0;
             } else {
-                unsigned int row, col;
+                unsigned char row, col;
                 char pass;
                 if (       !str_to_move(&row, &col, &pass, cmd[1])
                         || weiqi_register_move(&ctx->weiqi, 
@@ -180,7 +180,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
                 fprintf(stderr, "Error: missing arg\n");
                 ok = 0;
             } else {
-                unsigned int row, col;
+                unsigned char row, col;
                 char pass;
                 if (       !str_to_move(&row, &col, &pass, cmd[1])
                         || weiqi_register_move(&ctx->weiqi,
