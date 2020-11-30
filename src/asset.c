@@ -190,7 +190,7 @@ int assets_create(struct Board3D* board,
                   struct Stone3D* bStone,
                   struct Stone3D* wStone,
                   struct Asset3D* pointer,
-                  unsigned int boardSize,
+                  unsigned char boardSize,
                   struct InterfaceTheme* theme) {
     float radius;
     int bc = 0, bsc = 0, wsc = 0, pc = 0;

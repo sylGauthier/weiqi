@@ -13,13 +13,13 @@ int human_init(struct Player* player, struct Interface* ui) {
 
 int human_send_move(struct Player* player,
                     enum WeiqiColor color, enum MoveAction action,
-                    unsigned int row, unsigned int col) {
+                    unsigned char row, unsigned char col) {
     return W_NO_ERROR;
 }
 
 int human_get_move(struct Player* player,
                    enum WeiqiColor color, enum MoveAction* action,
-                   unsigned int* row, unsigned int* col) {
+                   unsigned char* row, unsigned char* col) {
     char ok = 0, status = 0;
 
     while (!ok) {

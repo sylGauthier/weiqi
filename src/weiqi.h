@@ -23,7 +23,7 @@ enum MoveAction {
 struct Move {
     enum WeiqiColor color;
     enum MoveAction action;
-    unsigned int row, col;
+    unsigned char row, col;
 
     struct Move* prev;
     struct Move* next;
@@ -35,7 +35,7 @@ struct History {
 };
 
 struct Weiqi {
-    char boardSize, handicap;
+    unsigned char boardSize, handicap;
     char* board;
     char* liberties;
     struct StoneList** clusters;
@@ -49,9 +49,9 @@ int weiqi_init(struct Weiqi* wq, char boardSize, char handicap);
 void weiqi_free(struct Weiqi* wq);
 
 int weiqi_move_is_valid(struct Weiqi* weiqi, enum WeiqiColor color,
-                        unsigned int row, unsigned int col);
+                        unsigned char row, unsigned char col);
 
 int weiqi_register_move(struct Weiqi* weiqi,
                         enum WeiqiColor color, enum MoveAction action,
-                        unsigned int row, unsigned int col);
+                        unsigned char row, unsigned char col);
 #endif

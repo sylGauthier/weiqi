@@ -76,7 +76,7 @@ static void free_cluster(struct Weiqi* weiqi, struct StoneList* cluster) {
 }
 
 static void free_clusters(struct Weiqi* weiqi) {
-    unsigned int row, col;
+    unsigned char row, col;
 
     for (row = 0; row < weiqi->boardSize; row++) {
         for (col = 0; col < weiqi->boardSize; col++) {
@@ -112,7 +112,7 @@ static int count_liberties(struct Weiqi* w, struct StoneList* cluster) {
 
     /* for all stones in the cluster */
     while (cluster) {
-        unsigned int r = cluster->row, c = cluster->col, s = w->boardSize - 1;
+        unsigned char r = cluster->row, c = cluster->col, s = w->boardSize - 1;
 
         /* we check neighbours, if empty and not already counted (not masked)
          * we increment count and we mask it
@@ -139,7 +139,7 @@ static int count_liberties(struct Weiqi* w, struct StoneList* cluster) {
 }
 
 static void get_clusters(struct Weiqi* weiqi, enum WeiqiColor color,
-                         unsigned int row, unsigned int col,
+                         unsigned char row, unsigned char col,
                          struct StoneList** friends, unsigned int* numFriends,
                          struct StoneList** enemies, unsigned int* numEnemies,
                          unsigned int* numVert) {
@@ -181,7 +181,7 @@ static void get_clusters(struct Weiqi* weiqi, enum WeiqiColor color,
 }
 
 static int move_valid(struct Weiqi* weiqi, enum WeiqiColor color,
-                      unsigned int row, unsigned int col,
+                      unsigned char row, unsigned char col,
                       struct StoneList** friends, unsigned int numFriends,
                       struct StoneList** enemies, unsigned int numEnemies,
                       unsigned int numVert) {
@@ -214,7 +214,7 @@ static int move_valid(struct Weiqi* weiqi, enum WeiqiColor color,
 }
 
 int weiqi_move_is_valid(struct Weiqi* weiqi, enum WeiqiColor color,
-                        unsigned int row, unsigned int col) {
+                        unsigned char row, unsigned char col) {
     struct StoneList *friends[4], *enemies[4];
     unsigned int numFriends, numEnemies, numVert;
 
@@ -250,7 +250,7 @@ static void del_cluster(struct Weiqi* weiqi, struct StoneList* cluster) {
 
 static int history_push(struct History* hist,
                         enum WeiqiColor color, enum MoveAction action,
-                        unsigned int row, unsigned int col) {
+                        unsigned char row, unsigned char col) {
     struct Move* new;
 
     if (!(new = malloc(sizeof(*new)))) {
@@ -271,7 +271,7 @@ static int history_push(struct History* hist,
 
 int weiqi_register_move(struct Weiqi* weiqi,
                         enum WeiqiColor color, enum MoveAction action,
-                        unsigned int row, unsigned int col) {
+                        unsigned char row, unsigned char col) {
     struct StoneList *friends[4] = {NULL}, *enemies[4] = {NULL}, *new = NULL;
     unsigned int numFriends = 0, numEnemies = 0, numVert = 0, i;
 

@@ -4,7 +4,7 @@
 
 #include "utils.h"
 
-int move_to_str(char dest[3], unsigned int row, unsigned int col) {
+int move_to_str(char dest[3], unsigned char row, unsigned char col) {
     if (row > 25 || col > 25) return 0;
     dest[0] = col + 'A';
     if (dest[0] >= 'I') dest[0]++;
@@ -12,7 +12,7 @@ int move_to_str(char dest[3], unsigned int row, unsigned int col) {
     return 1;
 }
 
-int str_to_move(unsigned int* row, unsigned int* col,
+int str_to_move(unsigned char* row, unsigned char* col,
                 char* pass, const char* str) {
     if (!strcmp(str, "PASS")) {
         *pass = 1;

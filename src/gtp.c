@@ -102,7 +102,7 @@ int gtp_local_engine_init(struct Player* player, const char* cmd) {
 
 int gtp_send_move(struct Player* player,
                   enum WeiqiColor color, enum MoveAction action,
-                  unsigned int row, unsigned int col) {
+                  unsigned char row, unsigned char col) {
     char move[5] = {0};
     char ans[2048];
     struct GTPConnection* c = player->data;
@@ -119,7 +119,7 @@ int gtp_send_move(struct Player* player,
 
 int gtp_get_move(struct Player* player,
                  enum WeiqiColor color, enum MoveAction* action,
-                 unsigned int* row, unsigned int* col) {
+                 unsigned char* row, unsigned char* col) {
     char ans[2048], pass;
     struct GTPConnection* c = player->data;
     fprintf(c->out, "genmove %s\n",

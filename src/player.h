@@ -10,10 +10,10 @@ struct Player {
 
     int (*send_move)(struct Player* player,
                      enum WeiqiColor color, enum MoveAction action,
-                     unsigned int row, unsigned int col);
+                     unsigned char row, unsigned char col);
     int (*get_move)(struct Player* player,
                     enum WeiqiColor color, enum MoveAction* action,
-                    unsigned int* row, unsigned int* col);
+                    unsigned char* row, unsigned char* col);
     int (*reset)(struct Player* player);
     void (*free)(struct Player* player);
 
