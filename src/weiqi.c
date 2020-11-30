@@ -239,10 +239,19 @@ static void merge_cluster(struct Weiqi* weiqi, struct StoneList* dest,
 }
 
 static void del_cluster(struct Weiqi* weiqi, struct StoneList* cluster) {
+    struct Move* lastMove = weiqi->history.last;
+    unsigned int max = sizeof(lastMove->captures) / 2;
+
     while (cluster) {
         struct StoneList* tmp = cluster->next;
         VERTICE_COLOR(weiqi, cluster->row, cluster->col) = W_EMPTY;
         VERTICE_CLUSTER(weiqi, cluster->row, cluster->col) = NULL;
+        /* store capture list into the capturing move for backtracking */
+        if (lastMove && lastMove->numCaptures < max) {
+            lastMove->captures[lastMove->numCaptures][0] = cluster->row;
+            lastMove->captures[lastMove->numCaptures][1] = cluster->col;
+            lastMove->numCaptures++;
+        }
         free(cluster);
         cluster = tmp;
     }
@@ -261,6 +270,7 @@ static int history_push(struct History* hist,
     new->action = action;
     new->row = row;
     new->col = col;
+    new->numCaptures = 0;
     new->next = NULL;
     new->prev = hist->last;
     if (hist->last) hist->last->next = new;
@@ -292,6 +302,10 @@ int weiqi_register_move(struct Weiqi* weiqi,
                     enemies, numEnemies, numVert)) {
         return W_ILLEGAL_MOVE;
     }
+
+    /* push into history, this allocates the new Move */
+    if (!history_push(&weiqi->history, color, W_PLAY, row, col))
+        return W_ERROR;
 
     /* create a new cluster for the new stone */
     if (!(new = list_new())) {
@@ -325,8 +339,5 @@ int weiqi_register_move(struct Weiqi* weiqi,
         }
     }
 
-    /* push into history */
-    if (!history_push(&weiqi->history, color, W_PLAY, row, col))
-        return W_ERROR;
     return W_NO_ERROR;
 }

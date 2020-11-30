@@ -25,6 +25,9 @@ struct Move {
     enum MoveAction action;
     unsigned char row, col;
 
+    unsigned char captures[256][2];
+    unsigned int numCaptures;
+
     struct Move* prev;
     struct Move* next;
 };
