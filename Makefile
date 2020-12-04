@@ -3,6 +3,7 @@ DEPS := 3dmr
 PREFIX ?= /usr
 DIR=$(if $(DESTDIR),$(DESTDIR)/)$(PREFIX)
 BIN_DIR=$(DIR)/$(or $(BINDIR),bin)
+MAN_DIR=$(DIR)/share/man/man1
 TEXTURE_DIR=$(DIR)/share/weiqi/textures
 TEXTURE_SRC=./textures
 
@@ -30,9 +31,10 @@ $(TEXTURE_SRC)/%.png:
 	wget pedantic.software/syg/files/$*.png -O $@
 
 install: weiqi $(TEXFILES)
-	mkdir -p $(BIN_DIR) $(TEXTURE_DIR)
+	mkdir -p $(BIN_DIR) $(TEXTURE_DIR) $(MAN_DIR)
 	cp weiqi $(BIN_DIR)
 	cp $(TEXFILES) $(TEXTURE_DIR)
+	cp weiqi.1 $(MAN_DIR)
 	if [ ! -f ~/.weiqi ] ; then \
 		touch ~/.weiqi ; \
 		command -v gnugo && echo engine gnugo \"`which gnugo` --mode gtp\" >> ~/.weiqi ; \

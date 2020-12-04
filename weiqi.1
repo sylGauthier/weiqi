@@ -1,0 +1,186 @@
+.TH WEIQI 1 2020-12-03
+.SH NAME
+weiqi \- a 3D Go board and GTP client
+
+.SH SYNOPSIS
+.B weiqi
+.RB [ \-w
+.IR player ]
+.RB [ \-b
+.IR player ]
+.RB [ \-s
+.IR board_size ]
+.RB [ \-h
+.IR handicap ]
+.RB [ \-l
+.IR game_file ]
+
+.SH DESCRIPTION
+.B weiqi
+is a simple 3D Go board to play go against GTP engines. The 3D look is highly
+customisable, and it relies heavily on the command line. All parameters of the
+game are set with the command arguments.
+
+.SH OPTIONS
+A
+.I player
+is one of
+.IR human " or " \fR<\fPengine_name\fR>\fP
+where
+.I engine_name
+is a GTP go engine defined in the configuration file. See
+.I CONFIG
+for more information on how to declare an engine.
+.I human
+is a player whose moves are registered from the 3D interface.
+.B weiqi
+accepts any combination of those players, including human versus human, engine
+versus engine, etc.
+
+.TP
+.BI "\-w\fR/\fP\-\-white " player
+Assigns
+.I player
+as the white player.
+
+.TP
+.BI "\-b\fR/\fP\-\-black " player
+Assigns
+.I player
+as the black player.
+
+.TP
+.BI "\-s\fR/\fP\-\-size " board_size
+Sets the board size, where
+.I board_size
+is an integer between 5 and 25 (note that the size accepted by different engines
+can vary, but anything between 7 and 19 is usually fine).
+
+.TP
+.BI "\-h\fR/\fP\-\-handicap " handicap
+Sets the number of handicap stones.
+
+.TP
+.BI "\-l\fR/\fP\-\-load " game_file
+Loads the specified game file. See
+.IR USAGE
+for more information on saving/loading games.
+
+.TP
+.BI "\-i\fR/\fP\-\-interface " pure\fR|\fPnice
+Interface mode.
+.I pure
+is minimal, uses a solid shader, no lighting, no reflection.
+.I nice
+looks more realistic, uses a modern PBR (physic based rendering) shader,
+supports lighting, roughness, metalness.
+
+.TP
+.BI "\-\-texture " texture_name\fR|\fPnone
+Texture to use for the board. By default, you have the choice between
+.IR wood.png ", " wood2.png " and " wood3.png .
+You can add more in
+.IR $PREFIX/share/weiqi .
+.I none
+will use a plain color instead, see
+.I --color
+
+.TP
+.BI "\-\-color " "r g b"
+The color to use for the board if texture is set to none.
+.I r g b
+are floats between 0 and 1.
+
+.SH CONFIG
+.B weiqi
+looks for a configuration file
+.I $HOME/.weiqi
+and will assume defaults if none is found. An option is essentially a command
+and its arguments separated by spaces. The different commands are:
+
+.TP
+.BI "engine " "\fR<\fPname\fR>\fP \fR<\fPcommand\fR>\fP"
+Declares the engine with the name
+.I name
+and the command to start it. The command must be enclosed in "double quotes" if
+it contains spaces/arguments.
+
+.TP
+.BI "stone " "white\fR|\fPblack color\fR|\fProughness\fR|\fPmetalness \fR<\fPvalues\fR>\fP"
+Sets the material parameters of black and white stones. Roughness and metalness
+are only relevant when using the
+.I nice
+interface, and take one float between 0 and 1. The color option takes 3 floats
+between 0 and 1, respectively red, green and blue.
+
+.TP
+.BI "board " "color\fR|\fProughness\fR|\fPmetalness\fR|\fPtexture \fR<\fPvalues\fR>\fP"
+Sets the material parameters for the board. color, roughness and metalness are
+similar as above, texture takes a string for the filename of the texture.
+
+.TP
+.BI "board " "size\fR|\fPhandicap \fR<\fPvalue\fR>\fP"
+Sets the size (as in the number of vertices on each side of the grid) and the
+handicap value.  Size should generally be between 5 and 25, handicap between 0
+and 9.
+
+.TP
+.BI "player " "white\fR|\fPblack human\fR|<\fPengine_name\fR>\fP"
+Assigns a player to the specified color. See above the
+.I \-\-player
+option.
+
+.SH USAGE
+.TP
+.B Starting a game
+Start a game by invoking
+.B weiqi
+with the desired parameters such as the size of the board and the number of
+handicap stones.
+
+.TP
+.B In game interface
+Left click on the board to place a stone somewhere when it's your turn (a black
+square indicates the position at which the stone will be added). Press P to pass
+your turn. You can hold right click and drag the mouse to rotate the board.
+
+.TP
+.B Saving/loading a game
+.B weiqi
+outputs all of the game configuration and history as it is played, in the same
+format as is expected when loading a file. Which means that to save a game,
+simply redirect
+.I stdout
+to the game file, or copy paste the output of
+.B weiqi
+into the file. You can then call
+.B "weiqi -l"
+on the file to load it back.
+
+.SH EXAMPLES
+.TP
+Default mode on a 9x9 board:
+.B weiqi -s 9
+
+.TP
+Gnugo vs Gnugo on a 19x19 board:
+.B weiqi -b gnugo -w gnugo
+
+.TP
+Gnugo vs human on a 19x19 board with pure interface, no texture and grey board:
+.B weiqi -b gnugo -w human -i pure --texture none --color 0.5 0.5 0.5
+
+.SH FILES
+.TP
+.I $HOME/.weiqi
+The configuration file. See
+.I CONFIG
+for configuration details.
+
+.SH SEE ALSO
+.IR gnugo (1)
+
+.SH AUTHOR
+.B weiqi
+was written by Sylvain Gauthier (syg@pedantic.software). Please visit
+https://pedantic.software/weiqi.html for more info.
