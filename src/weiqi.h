@@ -41,7 +41,6 @@ struct Weiqi {
     unsigned char boardSize, handicap;
     char* board;
     char* liberties;
-    struct StoneList** clusters;
     struct History history;
 
     unsigned int wcap;  /* stones captured by white */
