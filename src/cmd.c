@@ -66,13 +66,16 @@ static char* get_line(FILE* f) {
 }
 
 char** cmd_get(FILE* f) {
-    char *str;
+    char *str = NULL, **res = NULL;
     unsigned int len;
 
     do {
+        free(str);
         if (!(str = get_line(f))) return NULL;
     } while ((len = strlen(str)) == 0);
-    return cmd_split(str);
+    res = cmd_split(str);
+    free(str);
+    return res;
 }
 
 void cmd_free(char** cmd) {

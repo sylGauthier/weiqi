@@ -265,6 +265,8 @@ void* run_interface(void* arg) {
     }
     if (ui->viewer) viewer_free(ui->viewer);
     if (sceneInit) scene_free(&ui->scene, NULL);
+    free(ui->camNode);
+    free(ui->camOrientation);
     pthread_exit(NULL);
 }
 
@@ -272,6 +274,8 @@ int interface_init(struct Interface* ui, struct Weiqi* weiqi) {
     ui->viewer = NULL;
     ui->weiqi = weiqi;
     ui->status = W_UI_RUN;
+    ui->camNode = NULL;
+    ui->camOrientation = NULL;
     ui->cursorPos[0] = 0;
     ui->cursorPos[1] = 0;
     ui->selectPos[0] = 0;
