@@ -59,6 +59,7 @@ int gtp_init(struct Player* player, FILE* in, FILE* out) {
     player->data = c;
     player->send_move = gtp_send_move;
     player->get_move = gtp_get_move;
+    player->undo = gtp_undo;
     player->reset = gtp_reset;
     player->free = gtp_free;
     err = check_version(player);
@@ -128,15 +129,15 @@ int gtp_get_move(struct Player* player,
     gtp_get(c->in, ans, sizeof(ans));
     if (strlen(ans) < 4 || strncmp(ans, "= ", 2)) {
         fprintf(stderr, "Error: gtp: genmove returned error: %s\n", ans);
-        return 0;
+        return W_ERROR;
     }
     ans[strlen(ans) - 1] = '\0';
     if (!str_to_move(row, col, &pass, ans + 2)) {
         fprintf(stderr, "Error: format error from gtp client: %s\n", ans + 2);
-        return 0;
+        return W_ERROR;
     }
     if (pass) *action = W_PASS;
-    return 1;
+    return W_NO_ERROR;
 }
 
 #if 0
@@ -173,6 +174,13 @@ int gtp_reset(struct Player* player) {
         cur = cur->next;
     }
     return 1;
+}
+
+int gtp_undo(struct Player* player) {
+    struct GTPConnection* c = player->data;
+    fprintf(c->out, "undo\n");
+    fflush(c->out);
+    return gtp_is_happy(c->in);
 }
 
 void gtp_free(struct Player* player) {

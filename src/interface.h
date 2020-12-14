@@ -11,6 +11,7 @@
 enum InterfaceStatus {
     W_UI_QUIT = 0,
     W_UI_RUN,
+    W_UI_UNDO,
     W_UI_SELECT
 };
 

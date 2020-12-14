@@ -58,6 +58,10 @@ void key_callback(struct Viewer* viewer, int key, int scancode, int action,
                 interface->status = W_UI_RUN;
             }
             break;
+        case GLFW_KEY_BACKSPACE:
+            if (interface->status == W_UI_SELECT) {
+                interface->status = W_UI_UNDO;
+            }
         default:
             break;
     }

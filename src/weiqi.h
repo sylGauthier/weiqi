@@ -5,8 +5,10 @@ enum WeiqiError {
     W_NO_ERROR,
     W_ERROR,
     W_ILLEGAL_MOVE,
+    W_UNDO_MOVE,
     W_FORMAT_ERROR,
-    W_GAME_OVER
+    W_GAME_OVER,
+    W_QUIT
 };
 
 enum WeiqiColor {
@@ -56,4 +58,6 @@ int weiqi_move_is_valid(struct Weiqi* weiqi, enum WeiqiColor color,
 int weiqi_register_move(struct Weiqi* weiqi,
                         enum WeiqiColor color, enum MoveAction action,
                         unsigned char row, unsigned char col);
+
+void weiqi_undo_move(struct Weiqi* weiqi);
 #endif

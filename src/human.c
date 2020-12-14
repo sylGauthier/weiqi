@@ -7,6 +7,7 @@ int human_init(struct Player* player, struct Interface* ui) {
     player->send_move = human_send_move;
     player->get_move = human_get_move;
     player->reset = human_reset;
+    player->undo = human_undo;
     player->free = NULL;
     return 1;
 }
@@ -25,9 +26,11 @@ int human_get_move(struct Player* player,
     while (!ok) {
         status = interface_get_move(player->data, color, action, row, col);
         if (status == W_UI_QUIT) {
-            return 0;
+            return W_QUIT;
+        } else if (status == W_UI_UNDO) {
+            return W_UNDO_MOVE;
         } else if (*action == W_PASS) {
-            return 1;
+            return W_NO_ERROR;
         } else if (weiqi_move_is_valid(player->weiqi, color, *row, *col)
                 != W_NO_ERROR) {
             fprintf(stderr, "invalid move\n");
@@ -35,7 +38,11 @@ int human_get_move(struct Player* player,
             ok = 1;
         }
     }
-    return ok;
+    return W_NO_ERROR;
+}
+
+int human_undo(struct Player* player) {
+    return 1;
 }
 
 int human_reset(struct Player* player) {
