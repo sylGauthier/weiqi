@@ -199,6 +199,7 @@ int prog_load_config(struct Prog* prog) {
         cmd_free(cmd);
     }
 
+    cmd_free(cmd);
     fclose(f);
     free(confpath);
     return ok;
