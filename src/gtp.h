@@ -15,6 +15,7 @@ int gtp_get_move(struct Player* player,
                  unsigned char* row, unsigned char* col);
 
 int gtp_reset(struct Player* player);
+int gtp_undo(struct Player* player);
 void gtp_free(struct Player* player);
 
 #endif

@@ -344,3 +344,19 @@ int weiqi_register_move(struct Weiqi* weiqi,
 
     return W_NO_ERROR;
 }
+
+void weiqi_undo_move(struct Weiqi* weiqi) {
+    struct Move* mv = weiqi->history.last;
+
+    if (mv) {
+        unsigned int i;
+        VERTICE_COLOR(weiqi, mv->row, mv->col) = W_EMPTY;
+        for (i = 0; i < mv->numCaptures; i++) {
+            VERTICE_COLOR(weiqi, mv->captures[i][0], mv->captures[i][1]) =
+                mv->color == W_WHITE ? W_BLACK : W_WHITE;
+        }
+        weiqi->history.last = mv->prev;
+        if (mv->prev) weiqi->history.last->next = NULL;
+        free(mv);
+    }
+}

@@ -14,6 +14,7 @@ int human_get_move(struct Player* player,
                    enum WeiqiColor color, enum MoveAction* action,
                    unsigned char* row, unsigned char* col);
 
+int human_undo(struct Player* player);
 int human_reset(struct Player* player);
 
 #endif

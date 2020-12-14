@@ -42,8 +42,8 @@ static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
         p1 = &ctx->black;
         p2 = &ctx->white;
     }
-    if (!p1->get_move(p1, color, &action, &row, &col)) {
-        return W_ERROR;
+    if ((err = p1->get_move(p1, color, &action, &row, &col)) != W_NO_ERROR) {
+        return err;
     }
     if ((err = weiqi_register_move(&ctx->weiqi, color, action, row, col))
                != W_NO_ERROR) {
@@ -82,6 +82,15 @@ static void print_header(struct GameContext* ctx) {
     }
 }
 
+static int undo(struct GameContext* ctx) {
+    if (       ctx->black.undo(&ctx->black)
+            && ctx->white.undo(&ctx->white)) {
+        weiqi_undo_move(&ctx->weiqi);
+        return 1;
+    }
+    return 0;
+}
+
 int game_run(struct GameContext* ctx) {
     enum WeiqiColor color;
 
@@ -100,16 +109,23 @@ int game_run(struct GameContext* ctx) {
         enum WeiqiError err;
         err = play_turn(ctx, color);
         switch (err) {
+            case W_ERROR:
+                return 0;
             case W_GAME_OVER:
                 fprintf(stderr, "game over\n");
                 interface_wait(&ctx->ui);
                 return 1;
-            case W_ERROR:
-                return 0;
+            case W_UNDO_MOVE:
+                if (       undo(ctx)
+                        && undo(ctx)) {
+                    continue;
+                } else {
+                    fprintf(stderr, "Error: can't undo\n");
+                }
             default:
+                color = color == W_WHITE ? W_BLACK : W_WHITE;
                 break;
         }
-        color = color == W_WHITE ? W_BLACK : W_WHITE;
     }
     return 1;
 }
