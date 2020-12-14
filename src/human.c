@@ -28,7 +28,8 @@ int human_get_move(struct Player* player,
             return 0;
         } else if (*action == W_PASS) {
             return 1;
-        } else if (!weiqi_move_is_valid(player->weiqi, color, *row, *col)) {
+        } else if (weiqi_move_is_valid(player->weiqi, color, *row, *col)
+                != W_NO_ERROR) {
             fprintf(stderr, "invalid move\n");
         } else {
             ok = 1;
