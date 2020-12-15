@@ -26,6 +26,7 @@ struct Move {
     enum WeiqiColor color;
     enum MoveAction action;
     unsigned char row, col;
+    unsigned int nmove, nstones;
 
     unsigned char captures[256][2];
     unsigned int numCaptures;
@@ -42,7 +43,7 @@ struct History {
 struct Weiqi {
     unsigned char boardSize, handicap;
     char* board;
-    char* liberties;
+    char* tmpBoard;
     struct History history;
 
     unsigned int wcap;  /* stones captured by white */

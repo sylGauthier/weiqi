@@ -7,7 +7,7 @@
 
 #define VERTICE_ACCESS(w, b, r, c) (w)->b[(r) * (w)->boardSize + (c)]
 #define VERTICE_COLOR(w, r, c) VERTICE_ACCESS(w, board, r, c)
-#define VERTICE_LIB(w, r, c) VERTICE_ACCESS(w, liberties, r, c)
+#define VERTICE_TMP(w, r, c) VERTICE_ACCESS(w, tmpBoard, r, c)
 
 static void setup_handicap(struct Weiqi* weiqi) {
     char h = weiqi->handicap;
@@ -38,7 +38,7 @@ int weiqi_init(struct Weiqi* weiqi, char s, char h) {
     char maxHandicap;
 
     weiqi->board = NULL;
-    weiqi->liberties = NULL;
+    weiqi->tmpBoard = NULL;
     weiqi->history.first = NULL;
     weiqi->history.last = NULL;
     if (s == 7) maxHandicap = 4;
@@ -49,7 +49,7 @@ int weiqi_init(struct Weiqi* weiqi, char s, char h) {
     } else if (h > maxHandicap) {
         fprintf(stderr, "Error: handicap > max handicap (%d)\n", maxHandicap);
     } else if (!(weiqi->board = calloc(s * s * sizeof(char), 1))
-            || !(weiqi->liberties = calloc(s * s * sizeof(char), 1))) {
+            || !(weiqi->tmpBoard = calloc(s * s * sizeof(char), 1))) {
         fprintf(stderr, "Error: can't allocate memory for board\n");
     } else {
         weiqi->boardSize = s;
@@ -58,7 +58,7 @@ int weiqi_init(struct Weiqi* weiqi, char s, char h) {
         return 1;
     }
     free(weiqi->board);
-    free(weiqi->liberties);
+    free(weiqi->tmpBoard);
     return 0;
 }
 
@@ -72,7 +72,7 @@ static void free_history(struct Move* history) {
 
 void weiqi_free(struct Weiqi* weiqi) {
     free(weiqi->board);
-    free(weiqi->liberties);
+    free(weiqi->tmpBoard);
     free_history(weiqi->history.last);
 }
 
@@ -82,31 +82,31 @@ static int stack_add_unvisited(struct Weiqi* w, struct StoneList** stack,
     unsigned char s = w->boardSize - 1;
 
 
-    VERTICE_LIB(w, r, c) = 2;
+    VERTICE_TMP(w, r, c) = 2;
     if (r && VERTICE_COLOR(w, r - 1, c) == color
-          && VERTICE_LIB(w, r - 1, c) != 2) {
+          && VERTICE_TMP(w, r - 1, c) != 2) {
         if (!list_push(stack, r - 1, c)) return 0;
-        VERTICE_LIB(w, r - 1, c) = 2;
+        VERTICE_TMP(w, r - 1, c) = 2;
     }
     if (r < s && VERTICE_COLOR(w, r + 1, c) == color
-              && VERTICE_LIB(w, r + 1, c) != 2) {
+              && VERTICE_TMP(w, r + 1, c) != 2) {
         if (!list_push(stack, r + 1, c)) return 0;
-        VERTICE_LIB(w, r + 1, c) = 2;
+        VERTICE_TMP(w, r + 1, c) = 2;
     }
     if (c && VERTICE_COLOR(w, r, c - 1) == color
-          && VERTICE_LIB(w, r, c - 1) != 2) {
+          && VERTICE_TMP(w, r, c - 1) != 2) {
         if (!list_push(stack, r, c - 1)) return 0;
-        VERTICE_LIB(w, r, c - 1) = 2;
+        VERTICE_TMP(w, r, c - 1) = 2;
     }
     if (c < s && VERTICE_COLOR(w, r, c + 1) == color
-              && VERTICE_LIB(w, r, c + 1) != 2) {
+              && VERTICE_TMP(w, r, c + 1) != 2) {
         if (!list_push(stack, r, c + 1)) return 0;
-        VERTICE_LIB(w, r, c + 1) = 2;
+        VERTICE_TMP(w, r, c + 1) = 2;
     }
     return 1;
 }
 
-static int count_liberties(struct Weiqi* w,
+static int count_tmpBoard(struct Weiqi* w,
                            unsigned char row, unsigned char col) {
     int count = 0;
     struct StoneList* stack = NULL;
@@ -114,7 +114,7 @@ static int count_liberties(struct Weiqi* w,
 
     if (!color) return 0;
     /* reset the liberty mask */
-    memset(w->liberties, 0, w->boardSize * w->boardSize);
+    memset(w->tmpBoard, 0, w->boardSize * w->boardSize);
     if (!list_push(&stack, row, col)) return -1;
 
     /* for all stones in the group */
@@ -125,21 +125,21 @@ static int count_liberties(struct Weiqi* w,
         /* we check neighbours, if empty and not already counted (not masked)
          * we increment count and we mask it
          */
-        if (r && !VERTICE_COLOR(w, r - 1, c) && !VERTICE_LIB(w, r - 1, c)) {
+        if (r && !VERTICE_COLOR(w, r - 1, c) && !VERTICE_TMP(w, r - 1, c)) {
             count++;
-            VERTICE_LIB(w, r - 1, c) = 1;
+            VERTICE_TMP(w, r - 1, c) = 1;
         }
-        if (r < s && !VERTICE_COLOR(w, r + 1, c) && !VERTICE_LIB(w, r + 1, c)) {
+        if (r < s && !VERTICE_COLOR(w, r + 1, c) && !VERTICE_TMP(w, r + 1, c)) {
             count++;
-            VERTICE_LIB(w, r + 1, c) = 1;
+            VERTICE_TMP(w, r + 1, c) = 1;
         }
-        if (c && !VERTICE_COLOR(w, r, c - 1) && !VERTICE_LIB(w, r, c - 1)) {
+        if (c && !VERTICE_COLOR(w, r, c - 1) && !VERTICE_TMP(w, r, c - 1)) {
             count++;
-            VERTICE_LIB(w, r, c - 1) = 1;
+            VERTICE_TMP(w, r, c - 1) = 1;
         }
-        if (c < s && !VERTICE_COLOR(w, r, c + 1) && !VERTICE_LIB(w, r, c + 1)) {
+        if (c < s && !VERTICE_COLOR(w, r, c + 1) && !VERTICE_TMP(w, r, c + 1)) {
             count++;
-            VERTICE_LIB(w, r, c + 1) = 1;
+            VERTICE_TMP(w, r, c + 1) = 1;
         }
         if (!stack_add_unvisited(w, &stack, r, c)) {
             count = -1;
@@ -205,52 +205,28 @@ static void get_neighbours(struct Weiqi* weiqi, enum WeiqiColor color,
     }
 }
 
-static int move_valid(struct Weiqi* weiqi, enum WeiqiColor color,
-                      unsigned char row, unsigned char col,
-                      struct Pos* friends, unsigned int numFriends,
-                      struct Pos* enemies, unsigned int numEnemies,
-                      unsigned int numVert) {
-    char ennemyCaptured = 0, selfAlive = 0;
-    unsigned int i;
-
-    if (VERTICE_COLOR(weiqi, row, col)) return W_ILLEGAL_MOVE;
-
-    /* If the vertice is surrounded, more checks to be sure it's legal */
-    if (numEnemies + numFriends == numVert) {
-        /* If one of the ennemy groups has just one lib, gonna get captured */
-        for (i = 0; i < numEnemies; i++) {
-            int libs = count_liberties(weiqi, enemies[i].row, enemies[i].col);
-            if (libs < 0) return W_ERROR;
-            else if (libs == 1) {
-                ennemyCaptured = 1;
-                break;
-            }
-        }
-        if (!ennemyCaptured) {
-            /* If one of our groups has 2+ libs, we can play here */
-            for (i = 0; i < numFriends; i++) {
-                int libs = count_liberties(weiqi, friends[i].row, friends[i].col);
-                if (libs < 0) return W_ERROR;
-                else if (libs >= 2) {
-                    selfAlive = 1;
-                    break;
-                }
-            }
-            if (!selfAlive) return W_ILLEGAL_MOVE;
-        }
-    }
-    return W_NO_ERROR;
-}
-
-int weiqi_move_is_valid(struct Weiqi* weiqi, enum WeiqiColor color,
+static int history_push(struct History* hist,
+                        enum WeiqiColor color, enum MoveAction action,
                         unsigned char row, unsigned char col) {
-    struct Pos friends[4], enemies[4];
-    unsigned int numFriends, numEnemies, numVert;
+    struct Move* new;
 
-    get_neighbours(weiqi, color, row, col, friends, &numFriends,
-                   enemies, &numEnemies, &numVert);
-    return move_valid(weiqi, color, row, col, friends, numFriends,
-                      enemies, numEnemies, numVert);
+    if (!(new = malloc(sizeof(*new)))) {
+        fprintf(stderr, "Error: can't create new history entry\n");
+        return 0;
+    }
+    new->color = color;
+    new->action = action;
+    new->row = row;
+    new->col = col;
+    new->numCaptures = 0;
+    new->next = NULL;
+    new->prev = hist->last;
+    if (new->prev) new->nmove = new->prev->nmove + 1;
+    else new->nmove = 0;
+    if (hist->last) hist->last->next = new;
+    hist->last = new;
+    if (!hist->first) hist->first = new;
+    return 1;
 }
 
 static int del_group(struct Weiqi* w,
@@ -260,7 +236,7 @@ static int del_group(struct Weiqi* w,
     unsigned int max = sizeof(lastMove->captures) / 2;
 
     if (VERTICE_COLOR(w, row, col) == W_EMPTY) return 1;
-    memset(w->liberties, 0, w->boardSize * w->boardSize);
+    memset(w->tmpBoard, 0, w->boardSize * w->boardSize);
     if (!list_push(&stack, row, col)) return 0;
 
     while (stack) {
@@ -278,33 +254,137 @@ static int del_group(struct Weiqi* w,
     return 1;
 }
 
-static int history_push(struct History* hist,
-                        enum WeiqiColor color, enum MoveAction action,
-                        unsigned char row, unsigned char col) {
-    struct Move* new;
+static int register_move(struct Weiqi* weiqi,
+                         enum WeiqiColor color,
+                         unsigned char row, unsigned char col) {
+    struct Pos friends[4] = {0}, enemies[4] = {0};
+    unsigned int numFriends = 0, numEnemies = 0, numVert = 0;
+    unsigned int i;
 
-    if (!(new = malloc(sizeof(*new)))) {
-        fprintf(stderr, "Error: can't create new history entry\n");
-        return 0;
+    get_neighbours(weiqi, color, row, col, friends, &numFriends,
+                   enemies, &numEnemies, &numVert);
+
+    /* push into history, this allocates the new Move */
+    if (!history_push(&weiqi->history, color, W_PLAY, row, col))
+        return W_ERROR;
+
+    /* set the stone on the vertex */
+    VERTICE_COLOR(weiqi, row, col) = color;
+
+    /* and kill neighbouring enemies if 0 liberty left */
+    for (i = 0; i < numEnemies; i++) {
+        int libs = count_tmpBoard(weiqi, enemies[i].row, enemies[i].col);
+        if (libs < 0) return W_ERROR;
+        else if (libs == 0) {
+            if (!del_group(weiqi, enemies[i].row, enemies[i].col)) {
+                return W_ERROR;
+            }
+        }
     }
-    new->color = color;
-    new->action = action;
-    new->row = row;
-    new->col = col;
-    new->numCaptures = 0;
-    new->next = NULL;
-    new->prev = hist->last;
-    if (hist->last) hist->last->next = new;
-    hist->last = new;
-    if (!hist->first) hist->first = new;
+
+    /* update new history entry with number of stones */
+    if (weiqi->history.last->prev) {
+        weiqi->history.last->nstones = weiqi->history.last->prev->nstones
+            + 1 - weiqi->history.last->numCaptures;
+    } else {
+        weiqi->history.last->nstones = 1;
+    }
+    return W_NO_ERROR;
+}
+
+static void tmp_prev_board_state(struct Weiqi* weiqi, struct Move* move) {
+    unsigned int i;
+
+    VERTICE_TMP(weiqi, move->row, move->col) = W_EMPTY;
+    for (i = 0; i < move->numCaptures; i++) {
+        VERTICE_TMP(weiqi, move->captures[i][0], move->captures[i][1]) =
+                    move->color == W_WHITE ? W_BLACK : W_WHITE;
+    }
+}
+
+static int comp_prev_state(struct Weiqi* weiqi, struct Move* cur) {
+    struct Move* last = weiqi->history.last;
+    unsigned int i;
+    if (cur->nstones != last->nstones) return 0;
+    for (i = 0; i < weiqi->boardSize * weiqi->boardSize; i++) {
+        if (weiqi->board[i] != weiqi->tmpBoard[i]) return 0;
+    }
     return 1;
+}
+
+static int superko(struct Weiqi* weiqi, enum WeiqiColor color,
+                   unsigned char row, unsigned char col) {
+    enum WeiqiError err;
+    struct Move* cur;
+    int res = W_NO_ERROR;
+
+    err = register_move(weiqi, color, row, col);
+    if (err != W_NO_ERROR) return err;
+
+    cur = weiqi->history.last;
+    if (cur->prev && cur->prev->prev) {
+        memcpy(weiqi->tmpBoard, weiqi->board, weiqi->boardSize * weiqi->boardSize);
+
+        tmp_prev_board_state(weiqi, cur);
+        cur = cur->prev;
+        while (cur) {
+            if (cur->nmove + 2 <= weiqi->history.last->nstones) {
+                break;
+            }
+            if (comp_prev_state(weiqi, cur)) {
+                res = W_ILLEGAL_MOVE;
+                break;
+            }
+            tmp_prev_board_state(weiqi, cur);
+            cur = cur->prev;
+        }
+    }
+    weiqi_undo_move(weiqi);
+    return res;
+}
+
+int weiqi_move_is_valid(struct Weiqi* weiqi, enum WeiqiColor color,
+                        unsigned char row, unsigned char col) {
+    struct Pos friends[4], enemies[4];
+    unsigned int numFriends, numEnemies, numVert, i;
+    char ennemyCaptured = 0, selfAlive = 0;
+
+    get_neighbours(weiqi, color, row, col, friends, &numFriends,
+                   enemies, &numEnemies, &numVert);
+
+    if (VERTICE_COLOR(weiqi, row, col)) return W_ILLEGAL_MOVE;
+
+    /* If the vertice is surrounded, more checks to be sure it's legal */
+    if (numEnemies + numFriends == numVert) {
+        /* If one of the ennemy groups has just one lib, gonna get captured */
+        for (i = 0; i < numEnemies; i++) {
+            int libs = count_tmpBoard(weiqi, enemies[i].row, enemies[i].col);
+            if (libs < 0) return W_ERROR;
+            else if (libs == 1) {
+                ennemyCaptured = 1;
+                break;
+            }
+        }
+        if (!ennemyCaptured) {
+            /* If one of our groups has 2+ libs, we can play here */
+            for (i = 0; i < numFriends; i++) {
+                int libs = count_tmpBoard(weiqi, friends[i].row, friends[i].col);
+                if (libs < 0) return W_ERROR;
+                else if (libs >= 2) {
+                    selfAlive = 1;
+                    break;
+                }
+            }
+            if (!selfAlive) return W_ILLEGAL_MOVE;
+        }
+    }
+
+    return superko(weiqi, color, row, col);
 }
 
 int weiqi_register_move(struct Weiqi* weiqi,
                         enum WeiqiColor color, enum MoveAction action,
                         unsigned char row, unsigned char col) {
-    struct Pos friends[4] = {0}, enemies[4] = {0};
-    unsigned int numFriends = 0, numEnemies = 0, numVert = 0, i;
     enum WeiqiError err;
 
     /* we deal with the PASS case first */
@@ -317,32 +397,11 @@ int weiqi_register_move(struct Weiqi* weiqi,
         return W_NO_ERROR;
     }
 
-    /* get neighbouring groups and check that the move is valid */
-    get_neighbours(weiqi, color, row, col, friends, &numFriends,
-                   enemies, &numEnemies, &numVert);
-    err = move_valid(weiqi, color, row, col, friends, numFriends,
-                     enemies, numEnemies, numVert);
+    /* check that move is valid first */
+    err = weiqi_move_is_valid(weiqi, color, row, col);
     if (err != W_NO_ERROR) return err;
 
-    /* push into history, this allocates the new Move */
-    if (!history_push(&weiqi->history, color, W_PLAY, row, col))
-        return W_ERROR;
-
-    /* set the stone on the vertex */
-    VERTICE_COLOR(weiqi, row, col) = color;
-
-    /* and kill neighbouring enemies if 0 liberty left */
-    for (i = 0; i < numEnemies; i++) {
-        int libs = count_liberties(weiqi, enemies[i].row, enemies[i].col);
-        if (libs < 0) return W_ERROR;
-        else if (libs == 0) {
-            if (!del_group(weiqi, enemies[i].row, enemies[i].col)) {
-                return W_ERROR;
-            }
-        }
-    }
-
-    return W_NO_ERROR;
+    return register_move(weiqi, color, row, col);
 }
 
 void weiqi_undo_move(struct Weiqi* weiqi) {
