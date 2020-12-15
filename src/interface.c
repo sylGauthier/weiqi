@@ -63,6 +63,12 @@ void key_callback(struct Viewer* viewer, int key, int scancode, int action,
             if (interface->status == W_UI_SELECT) {
                 interface->status = W_UI_UNDO;
             }
+        case GLFW_KEY_HOME:
+            {
+                Quaternion q;
+                quaternion_load_id(q);
+                node_set_orientation(interface->camOrientation, q);
+            }
         default:
             break;
     }
