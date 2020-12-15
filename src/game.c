@@ -47,9 +47,14 @@ static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
     }
     if ((err = weiqi_register_move(&ctx->weiqi, color, action, row, col))
                != W_NO_ERROR) {
-        fprintf(stderr, "Error: %s tried to play an illegal move\n",
-                color == W_WHITE ? "white" : "black");
-        return W_ERROR;
+        switch (err) {
+            case W_ILLEGAL_MOVE:
+                fprintf(stderr, "Error: %s tried to play an illegal move\n",
+                        color == W_WHITE ? "white" : "black");
+                return W_ERROR;
+            default:
+                return err;
+        }
     }
     if (p2->send_move(p2, color, action, row, col) != W_NO_ERROR) {
         fprintf(stderr, "Error: %s doesn't like our move :(\n"
