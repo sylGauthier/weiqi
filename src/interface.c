@@ -10,6 +10,7 @@
 #include <3dmr/render/lights_buffer_object.h>
 
 #include "interface.h"
+#include "utils.h"
 
 #define SUN_DIRECTION   {-0.3, 0, -1}
 #define SUN_COLOR       {0.8, 0.8, 0.8}
@@ -211,6 +212,37 @@ static void setup_lighting(struct Scene* scene) {
     uniform_buffer_send(&scene->lights);
 }
 
+static void set_title(struct Interface* ui) {
+    char title[256] = "", last[64] = "";
+    char* status;
+    struct Move* lastm = ui->weiqi->history.last;
+
+    if (lastm) {
+        char strMove[5];
+        if (lastm->action == W_PASS) {
+            strcpy(strMove, "PASS");
+        } else {
+            move_to_str(strMove, lastm->row, lastm->col);
+        }
+        snprintf(last, sizeof(last), "%s %s",
+                 lastm->color == W_WHITE ? "white" : "black",
+                 strMove);
+    }
+    if (ui->weiqi->gameOver) {
+        status = "game over";
+    } else {
+        if (!lastm) status = "black's turn";
+        else status = ui->weiqi->history.last->color == W_WHITE ?
+                      "black's turn" : "white's turn";
+    }
+    snprintf(title, sizeof(title), "weiqi | W:%d | B:%d | last move: %s | %s",
+             ui->weiqi->wcap,
+             ui->weiqi->bcap,
+             last,
+             status);
+    viewer_set_title(ui->viewer, title);
+}
+
 void* run_interface(void* arg) {
     struct Interface* ui = arg;
     int sceneInit = 0, ac;
@@ -258,6 +290,7 @@ void* run_interface(void* arg) {
             uniform_buffer_send(&ui->scene.camera);
             render_board(ui);
             viewer_next_frame(ui->viewer);
+            set_title(ui);
         }
     }
 

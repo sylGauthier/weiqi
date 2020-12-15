@@ -45,6 +45,7 @@ struct Weiqi {
     char* board;
     char* tmpBoard;
     struct History history;
+    char gameOver;
 
     unsigned int wcap;  /* stones captured by white */
     unsigned int bcap;  /* stones captured by black */
