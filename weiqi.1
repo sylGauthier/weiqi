@@ -50,6 +50,10 @@ Assigns
 as the black player.
 
 .TP
+.BI "\-r\fR/\fP\-\-random " "player player"
+Randomly assigns the two specified players to white and black.
+
+.TP
 .BI "\-s\fR/\fP\-\-size " board_size
 Sets the board size, where
 .I board_size
@@ -130,6 +134,10 @@ Assigns a player to the specified color. See above the
 .I \-\-player
 option.
 
+.TP
+.BI "player " "random human\fR|<\fPengine_name\fR>\fP human\fR|<\fPengine_name\fR>\fP"
+Randomly assigns the two specified players to white and black.
+
 .SH USAGE
 .TP
 .B Starting a game
@@ -143,7 +151,10 @@ handicap stones.
 Left click on the board to place a stone somewhere when it's your turn (a black
 square indicates the position at which the stone will be added). Press P to
 pass your turn. Press backspace to undo your move, if the GTP engine supports
-it. You can hold right click and drag the mouse to rotate the board.
+it. You can hold right click and drag the mouse to rotate the board. Press HOME
+to reset the orientation. Useful information such as the white stones captures
+(W), the black stones captured (B), the last move and the game status are
+displayed in the window's title bar.
 
 .TP
 .B Saving/loading a game
@@ -166,6 +177,10 @@ Default mode on a 9x9 board:
 .TP
 Gnugo vs Gnugo on a 19x19 board:
 .B weiqi -b gnugo -w gnugo
+
+.TP
+Gnugo vs human, random assignation, 19x19 board:
+.B weiqi -r gnugo human
 
 .TP
 Gnugo vs human on a 19x19 board with pure interface, no texture and grey board:
