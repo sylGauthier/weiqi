@@ -109,7 +109,7 @@ static int stack_add_unvisited(struct Weiqi* w, struct StoneList** stack,
     return 1;
 }
 
-static int count_tmpBoard(struct Weiqi* w,
+static int count_liberties(struct Weiqi* w,
                            unsigned char row, unsigned char col) {
     int count = 0;
     struct StoneList* stack = NULL;
@@ -276,7 +276,7 @@ static int register_move(struct Weiqi* weiqi,
 
     /* and kill neighbouring enemies if 0 liberty left */
     for (i = 0; i < numEnemies; i++) {
-        int libs = count_tmpBoard(weiqi, enemies[i].row, enemies[i].col);
+        int libs = count_liberties(weiqi, enemies[i].row, enemies[i].col);
         if (libs < 0) return W_ERROR;
         else if (libs == 0) {
             if (!del_group(weiqi, enemies[i].row, enemies[i].col)) {
@@ -372,7 +372,7 @@ int weiqi_move_is_valid(struct Weiqi* weiqi, enum WeiqiColor color,
     if (numEnemies + numFriends == numVert) {
         /* If one of the ennemy groups has just one lib, gonna get captured */
         for (i = 0; i < numEnemies; i++) {
-            int libs = count_tmpBoard(weiqi, enemies[i].row, enemies[i].col);
+            int libs = count_liberties(weiqi, enemies[i].row, enemies[i].col);
             if (libs < 0) return W_ERROR;
             else if (libs == 1) {
                 ennemyCaptured = 1;
@@ -382,7 +382,7 @@ int weiqi_move_is_valid(struct Weiqi* weiqi, enum WeiqiColor color,
         if (!ennemyCaptured) {
             /* If one of our groups has 2+ libs, we can play here */
             for (i = 0; i < numFriends; i++) {
-                int libs = count_tmpBoard(weiqi, friends[i].row, friends[i].col);
+                int libs = count_liberties(weiqi, friends[i].row, friends[i].col);
                 if (libs < 0) return W_ERROR;
                 else if (libs >= 2) {
                     selfAlive = 1;
