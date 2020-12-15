@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "prog.h"
 #include "cmd.h"
@@ -136,19 +137,20 @@ static int player_config(struct Prog* prog, char** cmd) {
         conf = &prog->black;
     } else if (!strcmp(cmd[0], "white")) {
         conf = &prog->white;
+    } else if (!strcmp(cmd[0], "random")) {
+        if (!cmd[2]) {
+            fprintf(stderr, "Error: config: 'player random' "
+                            "requires an extra 2 arguments\n");
+            return 0;
+        }
+        return config_rand_assign(prog, cmd[1], cmd[2]);
     } else {
         fprintf(stderr, "Error: config: player: invalid arg: %s\n", cmd[1]);
         return 0;
     }
 
-    if (!strcmp(cmd[1], "human")) {
-        conf->type = W_HUMAN;
-    } else {
-        conf->type = W_GTP_LOCAL;
-        if (!(conf->gtpCmd = config_find_engine(prog, cmd[1]))) {
-            fprintf(stderr, "Error: config: unknown engine: %s\n", cmd[1]);
-            return 0;
-        }
+    if (!config_load_player(prog, conf, cmd[1])) {
+        return 0;
     }
     return 1;
 }
@@ -203,4 +205,34 @@ int prog_load_config(struct Prog* prog) {
     fclose(f);
     free(confpath);
     return ok;
+}
+
+
+int config_load_player(struct Prog* prog, struct PlayerConf* c, const char* p) {
+    if (!strcmp(p, "human")) {
+        c->type = W_HUMAN;
+    } else {
+        c->type = W_GTP_LOCAL;
+        if (!(c->gtpCmd = config_find_engine(prog, p))) {
+            fprintf(stderr, "Error: invalid GTP engine: %s\n", p);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int config_rand_assign(struct Prog* prog, const char* p1, const char* p2) {
+    srand(time(NULL));
+    if (rand() % 2 == 0) {
+        if (       !config_load_player(prog, &prog->white, p1)
+                || !config_load_player(prog, &prog->black, p2)) {
+            return 0;
+        }
+    } else {
+        if (       !config_load_player(prog, &prog->black, p1)
+                || !config_load_player(prog, &prog->white, p2)) {
+            return 0;
+        }
+    }
+    return 1;
 }

@@ -82,14 +82,8 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 print_help(argv[0]);
                 return 0;
             }
-            if (!strcmp(argv[i + 1], "human")) {
-                prog->white.type = W_HUMAN;
-            } else {
-                prog->white.type = W_GTP_LOCAL;
-                if (!(prog->white.gtpCmd = config_find_engine(prog, argv[i + 1]))) {
-                    fprintf(stderr, "Error: invalid GTP engine: %s\n", argv[i + 1]);
-                    return 0;
-                }
+            if (!config_load_player(prog, &prog->white, argv[i + 1])) {
+                return 0;
             }
             i++;
         } else if (!strcmp(arg, "-b") || !strcmp(arg, "--black")) {
@@ -97,16 +91,19 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 print_help(argv[0]);
                 return 0;
             }
-            if (!strcmp(argv[i + 1], "human")) {
-                prog->black.type = W_HUMAN;
-            } else {
-                prog->black.type = W_GTP_LOCAL;
-                if (!(prog->black.gtpCmd = config_find_engine(prog, argv[i + 1]))) {
-                    fprintf(stderr, "Error: invalid GTP engine: %s\n", argv[i + 1]);
-                    return 0;
-                }
+            if (!config_load_player(prog, &prog->black, argv[i + 1])) {
+                return 0;
             }
             i++;
+        } else if (!strcmp(arg, "-r") || !strcmp(arg, "--random")) {
+            if (i >= argc - 2) {
+                print_help(argv[0]);
+                return 0;
+            }
+            if (!config_rand_assign(prog, argv[i + 1], argv[i + 2])) {
+                return 0;
+            }
+            i += 2;
         } else if (!strcmp(arg, "-s") || !strcmp(arg, "--size")) {
             if (i == argc - 1) {
                 print_help(argv[0]);
