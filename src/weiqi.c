@@ -41,6 +41,9 @@ int weiqi_init(struct Weiqi* weiqi, char s, char h) {
     weiqi->tmpBoard = NULL;
     weiqi->history.first = NULL;
     weiqi->history.last = NULL;
+    weiqi->gameOver = 0;
+    weiqi->wcap = 0;
+    weiqi->bcap = 0;
     if (s == 7) maxHandicap = 4;
     else maxHandicap = 4 + (s % 2) * 5;
 
@@ -289,6 +292,17 @@ static int register_move(struct Weiqi* weiqi,
     } else {
         weiqi->history.last->nstones = 1;
     }
+
+    switch (color) {
+        case W_WHITE:
+            weiqi->bcap += weiqi->history.last->numCaptures;
+            break;
+        case W_BLACK:
+            weiqi->wcap += weiqi->history.last->numCaptures;
+            break;
+        default:
+            break;
+    }
     return W_NO_ERROR;
 }
 
@@ -393,7 +407,10 @@ int weiqi_register_move(struct Weiqi* weiqi,
         if (!history_push(&weiqi->history, color, W_PASS, 0, 0)) {
             return W_ERROR;
         }
-        if (last && last->action == W_PASS) return W_GAME_OVER;
+        if (last && last->action == W_PASS) {
+            weiqi->gameOver = 1;
+            return W_GAME_OVER;
+        }
         return W_NO_ERROR;
     }
 
@@ -413,6 +430,16 @@ void weiqi_undo_move(struct Weiqi* weiqi) {
         for (i = 0; i < mv->numCaptures; i++) {
             VERTICE_COLOR(weiqi, mv->captures[i][0], mv->captures[i][1]) =
                 mv->color == W_WHITE ? W_BLACK : W_WHITE;
+        }
+        switch (mv->color) {
+            case W_WHITE:
+                weiqi->bcap -= mv->numCaptures;
+                break;
+            case W_BLACK:
+                weiqi->wcap -= mv->numCaptures;
+                break;
+            default:
+                break;
         }
         weiqi->history.last = mv->prev;
         if (mv->prev) weiqi->history.last->next = NULL;
