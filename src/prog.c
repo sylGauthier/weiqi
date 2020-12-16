@@ -176,9 +176,9 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
 }
 
 int prog_init(struct Prog* prog) {
-    int p1 = 0, p2 = 0, ok = 1;
-    if (       !(p1 = player_init(prog, &prog->ctx.white, &prog->white))
-            || !(p2 = player_init(prog, &prog->ctx.black, &prog->black))) {
+    int ok = 1;
+    if (       !player_init(prog, &prog->ctx.white, &prog->white)
+            || !player_init(prog, &prog->ctx.black, &prog->black)) {
         fprintf(stderr, "Error: player init failed\n");
         ok = 0;
     } else if (prog->gameFile && !game_load_file(&prog->ctx, prog->gameFile)) {
@@ -190,8 +190,8 @@ int prog_init(struct Prog* prog) {
         ok = 0;
     }
     if (!ok) {
-        if (p1) prog->ctx.white.free(&prog->ctx.white);
-        if (p2) prog->ctx.black.free(&prog->ctx.black);
+        prog->ctx.white.free(&prog->ctx.white);
+        prog->ctx.black.free(&prog->ctx.black);
     }
     return ok;
 }
