@@ -52,7 +52,7 @@ static int check_version(struct Player* gtp) {
 
 static int gtp_socket_init(struct Player* player, struct Weiqi* w) {
     struct GTPConnection* c = player->data;
-    int sfd, cfd;
+    int sfd, cfd, err;
     struct sockaddr_un addr;
 
     player->weiqi = w;
@@ -81,7 +81,20 @@ static int gtp_socket_init(struct Player* player, struct Weiqi* w) {
         return 0;
     }
     fprintf(stderr, "Info: connection successful\n");
-    return 0;
+    if (       !(c->in = fdopen(cfd, "r"))
+            || !(c->out = fdopen(cfd, "w"))) {
+        if (c->in) fclose(c->in);
+        return 0;
+    }
+    err = check_version(player);
+    if (err < 0) {
+        fprintf(stderr, "Error: player offline\n");
+        return 0;
+    } else if (!err) {
+        fprintf(stderr, "Error: socket protocol: wrong version\n");
+        return 0;
+    }
+    return 1;
 }
 
 static int gtp_pipe_init(struct Player* player, struct Weiqi* w) {
