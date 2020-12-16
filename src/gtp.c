@@ -1,13 +1,17 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "gtp.h"
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#include "player.h"
 #include "utils.h"
 #include "cmd.h"
 #include "pipe_proc.h"
 
 struct GTPConnection {
     FILE *in, *out;
+    const char* cmd;
 };
 
 static int gtp_get(FILE* in, char* buf, unsigned int bufSize) {
@@ -46,62 +50,73 @@ static int check_version(struct Player* gtp) {
     return 0;
 }
 
-int gtp_init(struct Player* player, FILE* in, FILE* out) {
-    int err, ok = 1;
-    struct GTPConnection* c;
+static int gtp_socket_init(struct Player* player, struct Weiqi* w) {
+    struct GTPConnection* c = player->data;
+    int sfd, cfd;
+    struct sockaddr_un addr;
 
-    if (!(c = malloc(sizeof(struct GTPConnection)))) {
-        fprintf(stderr, "Error: can't create GTP data\n");
+    player->weiqi = w;
+    if (strlen(c->cmd) >= sizeof(addr.sun_path)) {
+        fprintf(stderr, "Error: socket path too long\n");
         return 0;
     }
-    c->in = in;
-    c->out = out;
-    player->data = c;
-    player->send_move = gtp_send_move;
-    player->get_move = gtp_get_move;
-    player->undo = gtp_undo;
-    player->reset = gtp_reset;
-    player->free = gtp_free;
-    err = check_version(player);
-    if (err < 0) {
-        fprintf(stderr, "Error: GTP: engine offline\n");
-        ok = 0;
-    } else if (!err) {
-        fprintf(stderr, "Error: GTP: invalid version\n");
-        ok = 0;
+    if ((sfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+        fprintf(stderr, "Error: can't create socket\n");
+        return 0;
     }
-    if (!ok) {
-        free(c);
-        player->data = NULL;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, c->cmd);
+    if (bind(sfd, (void*)&addr, sizeof(addr)) < 0) {
+        fprintf(stderr, "Error: can't bind to socket\n");
+        return 0;
     }
-    return ok;
+    if (listen(sfd, 0) < 0) {
+        fprintf(stderr, "Error: can't listen to socket");
+        return 0;
+    }
+    fprintf(stderr, "Info: waiting for player to connect...\n");
+    if ((cfd = accept(sfd, NULL, NULL)) < 0) {
+        fprintf(stderr, "Error: socket connection failed\n");
+        return 0;
+    }
+    fprintf(stderr, "Info: connection successful\n");
+    return 0;
 }
 
-int gtp_local_engine_init(struct Player* player, const char* cmd) {
-    FILE *in, *out;
-    int pid, ok = 1;
+static int gtp_pipe_init(struct Player* player, struct Weiqi* w) {
+    struct GTPConnection* c = player->data;
+    int pid, ok = 1, err;
     char** splitcmd;
 
-    fprintf(stderr, "Info: gtp engine: %s\n", cmd);
-    if (!(splitcmd = cmd_split(cmd))) {
+    player->weiqi = w;
+    fprintf(stderr, "Info: gtp engine: %s\n", c->cmd);
+    if (!(splitcmd = cmd_split(c->cmd))) {
         fprintf(stderr, "Error: can't split command\n");
         return 0;
     }
 
-    pid = pipe_proc(splitcmd[0], splitcmd, &out, &in);
+    pid = pipe_proc(splitcmd[0], splitcmd, &c->out, &c->in);
 
     if (pid < 0) {
         exit(-1);
     } else if (pid == 0) {
         ok = 0;
     } else {
-        ok = gtp_init(player, in, out);
+        err = check_version(player);
+        if (err < 0) {
+            fprintf(stderr, "Error: GTP: engine offline\n");
+            ok = 0;
+        } else if (!err) {
+            fprintf(stderr, "Error: GTP: invalid version\n");
+            ok = 0;
+        }
     }
     cmd_free(splitcmd);
     return ok;
 }
 
-int gtp_send_move(struct Player* player,
+static int gtp_send_move(struct Player* player,
                   enum WeiqiColor color, enum MoveAction action,
                   unsigned char row, unsigned char col) {
     char move[5] = {0};
@@ -118,7 +133,7 @@ int gtp_send_move(struct Player* player,
     return W_NO_ERROR;
 }
 
-int gtp_get_move(struct Player* player,
+static int gtp_get_move(struct Player* player,
                  enum WeiqiColor color, enum MoveAction* action,
                  unsigned char* row, unsigned char* col) {
     char ans[2048], pass;
@@ -140,17 +155,7 @@ int gtp_get_move(struct Player* player,
     return W_NO_ERROR;
 }
 
-#if 0
-static void gtp_showboard(struct Player* player) {
-    char ans[2048];
-    fprintf(player->out, "showboard\n");
-    fflush(player->out);
-    gtp_get(player->in, ans, sizeof(ans));
-    printf("%s\n", ans);
-}
-#endif
-
-int gtp_reset(struct Player* player) {
+static int gtp_reset(struct Player* player) {
     struct Move* cur = NULL;
     struct GTPConnection* c = player->data;
     fprintf(c->out, "clear_board\n");
@@ -176,18 +181,53 @@ int gtp_reset(struct Player* player) {
     return 1;
 }
 
-int gtp_undo(struct Player* player) {
+static int gtp_undo(struct Player* player) {
     struct GTPConnection* c = player->data;
     fprintf(c->out, "undo\n");
     fflush(c->out);
     return gtp_is_happy(c->in);
 }
 
-void gtp_free(struct Player* player) {
+static void gtp_free(struct Player* player) {
     struct GTPConnection* c = player->data;
     if (c) {
         if (c->in) fclose(c->in);
         if (c->out) fclose(c->out);
         free(player->data);
     }
+}
+
+static void gtp_socket_free(struct Player* player) {
+    struct GTPConnection* c = player->data;
+    gtp_free(player);
+    remove(c->cmd);
+}
+
+int player_gtp_pipe_init(struct Player* player, const char* cmd) {
+    struct GTPConnection* c;
+
+    if (!(c = malloc(sizeof(struct GTPConnection)))) {
+        fprintf(stderr, "Error: can't create GTP data\n");
+        return 0;
+    }
+    c->in = NULL;
+    c->out = NULL;
+    c->cmd = cmd;
+    player->data = c;
+    player->init = gtp_pipe_init;
+    player->send_move = gtp_send_move;
+    player->get_move = gtp_get_move;
+    player->undo = gtp_undo;
+    player->reset = gtp_reset;
+    player->free = gtp_free;
+    return 1;
+}
+
+int player_gtp_socket_init(struct Player* player, const char* cmd) {
+    if (player_gtp_pipe_init(player, cmd)) {
+        player->init = gtp_socket_init;
+        player->free = gtp_socket_free;
+        return 1;
+    }
+    return 0;
 }

@@ -22,14 +22,20 @@ static int player_init(struct Prog* prog, struct Player* player,
                        struct PlayerConf* conf) {
     switch (conf->type) {
         case W_HUMAN:
-            if (!human_init(player, &prog->ctx.ui)) {
+            if (!player_human_init(player, &prog->ctx.ui)) {
                 fprintf(stderr, "Error: human player init failed\n");
                 return 0;
             }
             break;
         case W_GTP_LOCAL:
-            if (!gtp_local_engine_init(player, conf->gtpCmd)) {
+            if (!player_gtp_pipe_init(player, conf->gtpCmd)) {
                 fprintf(stderr, "Error: GTP engine init failed\n");
+                return 0;
+            }
+            break;
+        case W_GTP_SOCKET:
+            if (!player_gtp_socket_init(player, conf->gtpCmd)) {
+                fprintf(stderr, "Error: GTP socket init failed\n");
                 return 0;
             }
             break;
@@ -170,21 +176,24 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
 }
 
 int prog_init(struct Prog* prog) {
-    if (prog->gameFile && !game_load_file(&prog->ctx, prog->gameFile)) {
+    int p1 = 0, p2 = 0, ok = 1;
+    if (       !(p1 = player_init(prog, &prog->ctx.white, &prog->white))
+            || !(p2 = player_init(prog, &prog->ctx.black, &prog->black))) {
+        fprintf(stderr, "Error: player init failed\n");
+        ok = 0;
+    } else if (prog->gameFile && !game_load_file(&prog->ctx, prog->gameFile)) {
         fprintf(stderr, "Error: loading game file failed\n");
-        return 0;
+        ok = 0;
     } else if (    !prog->gameFile
                 && !game_init(&prog->ctx, prog->boardSize, prog->handicap)) {
         fprintf(stderr, "Error: game init failed\n");
-        return 0;
+        ok = 0;
     }
-    if (       !player_init(prog, &prog->ctx.white, &prog->white)
-            || !player_init(prog, &prog->ctx.black, &prog->black)) {
-        fprintf(stderr, "Error: player init failed\n");
-        game_free(&prog->ctx);
-        return 0;
+    if (!ok) {
+        if (p1) prog->ctx.white.free(&prog->ctx.white);
+        if (p2) prog->ctx.black.free(&prog->ctx.black);
     }
-    return 1;
+    return ok;
 }
 
 void prog_free(struct Prog* prog) {

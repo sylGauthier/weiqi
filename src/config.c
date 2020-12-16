@@ -211,6 +211,9 @@ int prog_load_config(struct Prog* prog) {
 int config_load_player(struct Prog* prog, struct PlayerConf* c, const char* p) {
     if (!strcmp(p, "human")) {
         c->type = W_HUMAN;
+    } else if (!strncmp(p, "socket:", strlen("socket:"))) {
+        c->type = W_GTP_SOCKET;
+        c->gtpCmd = p + 7;
     } else {
         c->type = W_GTP_LOCAL;
         if (!(c->gtpCmd = config_find_engine(prog, p))) {
