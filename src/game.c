@@ -12,6 +12,9 @@ int game_init(struct GameContext* ctx, char boardSize, char handicap) {
     }
     if (!(weiqi_init(&ctx->weiqi, boardSize, handicap))) {
         return 0;
+    } else if (!ctx->white.init(&ctx->white, &ctx->weiqi)
+            || !ctx->black.init(&ctx->black, &ctx->weiqi)) {
+        return 0;
     } else if (!interface_init(&ctx->ui, &ctx->weiqi)) {
         weiqi_free(&ctx->weiqi);
         return 0;

@@ -7,7 +7,8 @@
 
 enum PlayerType {
     W_HUMAN,
-    W_GTP_LOCAL
+    W_GTP_LOCAL,
+    W_GTP_SOCKET
 };
 
 struct Engine {
@@ -17,7 +18,7 @@ struct Engine {
 
 struct PlayerConf {
     enum PlayerType type;
-    char* gtpCmd;
+    const char* gtpCmd;
 };
 
 struct Prog {

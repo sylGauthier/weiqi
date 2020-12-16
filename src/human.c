@@ -1,24 +1,14 @@
 #include <string.h>
 
-#include "human.h"
+#include "player.h"
 
-int human_init(struct Player* player, struct Interface* ui) {
-    player->data = ui;
-    player->send_move = human_send_move;
-    player->get_move = human_get_move;
-    player->reset = human_reset;
-    player->undo = human_undo;
-    player->free = NULL;
-    return 1;
-}
-
-int human_send_move(struct Player* player,
+static int human_send_move(struct Player* player,
                     enum WeiqiColor color, enum MoveAction action,
                     unsigned char row, unsigned char col) {
     return W_NO_ERROR;
 }
 
-int human_get_move(struct Player* player,
+static int human_get_move(struct Player* player,
                    enum WeiqiColor color, enum MoveAction* action,
                    unsigned char* row, unsigned char* col) {
     char ok = 0, status = 0;
@@ -41,10 +31,30 @@ int human_get_move(struct Player* player,
     return W_NO_ERROR;
 }
 
-int human_undo(struct Player* player) {
+static int human_undo(struct Player* player) {
     return 1;
 }
 
-int human_reset(struct Player* player) {
+static int human_reset(struct Player* player) {
+    return 1;
+}
+
+static int human_init(struct Player* player, struct Weiqi* weiqi) {
+    player->weiqi = weiqi;
+    return 1;
+}
+
+static void human_free(struct Player* player) {
+    return;
+}
+
+int player_human_init(struct Player* player, struct Interface* ui) {
+    player->data = ui;
+    player->init = human_init;
+    player->send_move = human_send_move;
+    player->get_move = human_get_move;
+    player->reset = human_reset;
+    player->undo = human_undo;
+    player->free = human_free;
     return 1;
 }
