@@ -33,6 +33,7 @@ $(TEXTURE_SRC)/%.png:
 install: weiqi $(TEXFILES)
 	mkdir -p $(BIN_DIR) $(TEXTURE_DIR) $(MAN_DIR)
 	cp weiqi $(BIN_DIR)
+	cp wrappers/* $(BIN_DIR)
 	cp $(TEXFILES) $(TEXTURE_DIR)
 	cp weiqi.1 $(MAN_DIR)
 	if [ ! -f ~/.weiqi ] ; then \
