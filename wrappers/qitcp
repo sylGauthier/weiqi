@@ -1,0 +1,68 @@
+#!/bin/sh
+
+UNSOCKET="/tmp/weiqi"
+PORT=7878
+
+die() {
+    echo "$1" 2>&1
+    exit 1
+}
+
+weiqi_listen() {
+    rm "${UNSOCKET}_listen" 2> /dev/null
+
+    echo "Starting weiqi..."
+    weiqi -r "human" "socket:${UNSOCKET}_listen" &
+    wpid="$!"
+    sleep 1
+
+    echo "Routing socket on TCP port $PORT..."
+    socat "UNIX-CONNECT:${UNSOCKET}_listen" "TCP-LISTEN:$PORT" &
+    scpid="$!"
+    test "$?" == "0" || die "Cannot route sockets"
+
+    wait "$wpid"
+}
+
+weiqi_connect() {
+    if [ -z "$1" -o -z "$2" ] ; then
+        weiqi_help
+        exit 1
+    fi
+
+    rm "${UNSOCKET}_connect" 2> /dev/null
+
+    echo "Routing socket..."
+    socat "UNIX-LISTEN:${UNSOCKET}_connect" "TCP-CONNECT:$1:$2" &
+    scpid="$!"
+    test "$?" == "0" || die "Cannot route sockets"
+    sleep 1
+
+    echo "Starting weiqi..."
+    weiqi --client "human" "${UNSOCKET}_connect" &
+    wpid="$!"
+
+    wait "$wpid"
+}
+
+weiqi_help() {
+    echo "$0 <listen|connect> [options]"
+    echo "    listen: starts a server"
+    echo "    connect <host> <port>: connects to a server"
+}
+
+command -v weiqi 2>&1 > /dev/null || die "Cannot find weiqi in PATH"
+command -v socat 2>&1 > /dev/null || die "Cannot find socat in PATH"
+
+case "$1" in
+    listen)
+        weiqi_listen
+        ;;
+    connect)
+        shift
+        weiqi_connect $@
+        ;;
+    *)
+        weiqi_help
+        ;;
+esac
