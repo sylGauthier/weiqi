@@ -21,6 +21,11 @@ struct PlayerConf {
     const char* gtpCmd;
 };
 
+enum GameMode {
+    WQ_SERVER,
+    WQ_CLIENT
+};
+
 struct Prog {
     unsigned char boardSize;
     unsigned char handicap;
@@ -29,8 +34,12 @@ struct Prog {
 
     const char* gtpCmd;
     const char* gameFile;
+    const char* sockpath;
 
+    enum GameMode mode;
     struct GameContext ctx;
+    struct GameClient client;
+
     struct Engine engines[W_NUM_ENGINES];
     unsigned int numEngines;
 };
@@ -38,6 +47,7 @@ struct Prog {
 char* config_find_engine(struct Prog* prog, const char* name);
 int config_load_player(struct Prog* prog, struct PlayerConf* c, const char* p);
 int config_rand_assign(struct Prog* prog, const char* p1, const char* p2);
+
 int prog_load_defaults(struct Prog* prog);
 int prog_load_config(struct Prog* prog);
 int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv);

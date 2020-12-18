@@ -20,9 +20,11 @@ static void print_help(const char* cmd) {
 
 static int player_init(struct Prog* prog, struct Player* player,
                        struct PlayerConf* conf) {
+    struct Interface* ui = prog->mode == WQ_SERVER ? &prog->ctx.ui
+                                                   : &prog->client.ui;
     switch (conf->type) {
         case W_HUMAN:
-            if (!player_human_init(player, &prog->ctx.ui)) {
+            if (!player_human_init(player, ui)) {
                 fprintf(stderr, "Error: human player init failed\n");
                 return 0;
             }
@@ -162,7 +164,22 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                      strtof(argv[i + 1], NULL),
                      strtof(argv[i + 2], NULL),
                      strtof(argv[i + 3], NULL));
+            SET_VEC3(prog->client.ui.theme.board.color,
+                     strtof(argv[i + 1], NULL),
+                     strtof(argv[i + 2], NULL),
+                     strtof(argv[i + 3], NULL));
             i += 3;
+        } else if (!strcmp(arg, "--client")) {
+            if (i >= argc - 2) {
+                print_help(argv[0]);
+                return 0;
+            }
+            prog->mode = WQ_CLIENT;
+            prog->sockpath = argv[i + 2];
+            if (!config_load_player(prog, &prog->white, argv[i + 1])) {
+                return 0;
+            }
+            i += 2;
         } else {
             print_help(argv[0]);
             return 0;
@@ -177,23 +194,43 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
 
 int prog_init(struct Prog* prog) {
     int ok = 1;
-    if (       !player_init(prog, &prog->ctx.white, &prog->white)
-            || !player_init(prog, &prog->ctx.black, &prog->black)) {
-        fprintf(stderr, "Error: player init failed\n");
-        ok = 0;
-    } else if (prog->gameFile && !game_load_file(&prog->ctx, prog->gameFile)) {
-        fprintf(stderr, "Error: loading game file failed\n");
-        ok = 0;
-    } else if (    !prog->gameFile
-                && !game_init(&prog->ctx, prog->boardSize, prog->handicap)) {
-        fprintf(stderr, "Error: game init failed\n");
-        ok = 0;
+    switch (prog->mode) {
+        case WQ_SERVER:
+            if (       !player_init(prog, &prog->ctx.white, &prog->white)
+                    || !player_init(prog, &prog->ctx.black, &prog->black)) {
+                fprintf(stderr, "Error: player init failed\n");
+                ok = 0;
+            } else if (    prog->gameFile
+                        && !game_load_file(&prog->ctx, prog->gameFile)) {
+                fprintf(stderr, "Error: loading game file failed\n");
+                ok = 0;
+            } else if (    !prog->gameFile
+                        && !game_init(&prog->ctx,
+                                      prog->boardSize,
+                                      prog->handicap)) {
+                fprintf(stderr, "Error: game init failed\n");
+                ok = 0;
+            }
+            if (!ok) {
+                prog->ctx.white.free(&prog->ctx.white);
+                prog->ctx.black.free(&prog->ctx.black);
+            }
+            return ok;
+        case WQ_CLIENT:
+            prog->client.ui = prog->ctx.ui;
+            if (!player_init(prog, &prog->client.player, &prog->white)) {
+                fprintf(stderr, "Error: player init failed\n");
+                ok = 0;
+            } else if (!game_client_init(&prog->client, prog->sockpath)) {
+                fprintf(stderr, "Error: client init failed\n");
+                ok = 0;
+            }
+            if (!ok) prog->client.player.free(&prog->client.player);
+            return ok;
+        default:
+            return 0;
     }
-    if (!ok) {
-        prog->ctx.white.free(&prog->ctx.white);
-        prog->ctx.black.free(&prog->ctx.black);
-    }
-    return ok;
+    return 0;
 }
 
 void prog_free(struct Prog* prog) {
