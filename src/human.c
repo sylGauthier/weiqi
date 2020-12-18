@@ -39,8 +39,9 @@ static int human_reset(struct Player* player) {
     return 1;
 }
 
-static int human_init(struct Player* player, struct Weiqi* weiqi) {
+static int human_init(struct Player* player, struct Weiqi* weiqi, int c) {
     player->weiqi = weiqi;
+    player->color = c;
     return 1;
 }
 

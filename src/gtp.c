@@ -50,12 +50,13 @@ static int check_version(struct Player* gtp) {
     return 0;
 }
 
-static int gtp_socket_init(struct Player* player, struct Weiqi* w) {
+static int gtp_socket_init(struct Player* player, struct Weiqi* w, int color) {
     struct GTPConnection* c = player->data;
     int sfd, cfd, err;
     struct sockaddr_un addr;
 
     player->weiqi = w;
+    player->color = color;
     if (strlen(c->cmd) >= sizeof(addr.sun_path)) {
         fprintf(stderr, "Error: socket path too long\n");
         return 0;
@@ -97,12 +98,13 @@ static int gtp_socket_init(struct Player* player, struct Weiqi* w) {
     return 1;
 }
 
-static int gtp_pipe_init(struct Player* player, struct Weiqi* w) {
+static int gtp_pipe_init(struct Player* player, struct Weiqi* w, int color) {
     struct GTPConnection* c = player->data;
     int pid, ok = 1, err;
     char** splitcmd;
 
     player->weiqi = w;
+    player->color = color;
     fprintf(stderr, "Info: gtp engine: %s\n", c->cmd);
     if (!(splitcmd = cmd_split(c->cmd))) {
         fprintf(stderr, "Error: can't split command\n");
@@ -182,6 +184,12 @@ static int gtp_reset(struct Player* player) {
     if (!gtp_is_happy(c->in)) {
         fprintf(stderr, "Error: GTP: engine doesn't accept this board size\n");
         return 0;
+    }
+    fprintf(c->out, "player %s\n",
+            player->color == W_WHITE ? "white" : "black");
+    fflush(c->out);
+    if (!gtp_is_happy(c->in)) {
+        fprintf(stderr, "Info: GTP player is ignoring color assignment\n");
     }
 
     cur = player->weiqi->history.first;

@@ -8,8 +8,9 @@
 
 struct Player {
     struct Weiqi* weiqi;
+    enum WeiqiColor color;
 
-    int (*init)(struct Player* player, struct Weiqi* weiqi);
+    int (*init)(struct Player* player, struct Weiqi* weiqi, int color);
     int (*send_move)(struct Player* player,
                      enum WeiqiColor color, enum MoveAction action,
                      unsigned char row, unsigned char col);
