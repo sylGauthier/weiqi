@@ -37,7 +37,7 @@ struct Prog {
     const char* sockpath;
 
     enum GameMode mode;
-    struct GameContext ctx;
+    struct GameServer srv;
     struct GameClient client;
 
     struct Engine engines[W_NUM_ENGINES];

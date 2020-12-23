@@ -4,7 +4,7 @@
 #include "player.h"
 #include "interface.h"
 
-struct GameContext {
+struct GameServer {
     struct Weiqi weiqi;
     struct Player white;
     struct Player black;
@@ -20,13 +20,13 @@ struct GameClient {
     const char* socketPath;
 };
 
-int game_init(struct GameContext* ctx, char boardSize, char handicap);
+int game_init(struct GameServer* srv, char boardSize, char handicap);
 
-int game_load_file(struct GameContext* ctx, const char* f);
+int game_load_file(struct GameServer* srv, const char* f);
 
-void game_free(struct GameContext* ctx);
+void game_free(struct GameServer* srv);
 
-int game_run(struct GameContext* ctx);
+int game_run(struct GameServer* srv);
 
 int game_client_init(struct GameClient* client, const char* socketPath);
 int game_client_run(struct GameClient* client);

@@ -5,31 +5,31 @@
 #include "utils.h"
 #include "cmd.h"
 
-int game_init(struct GameContext* ctx, char boardSize, char handicap) {
+int game_init(struct GameServer* srv, char boardSize, char handicap) {
     if (boardSize < 5 || boardSize > 25) {
         fprintf(stderr, "Error: invalid board size\n");
         return 0;
     }
-    if (!(weiqi_init(&ctx->weiqi, boardSize, handicap))) {
+    if (!(weiqi_init(&srv->weiqi, boardSize, handicap))) {
         return 0;
-    } else if (!ctx->white.init(&ctx->white, &ctx->weiqi, W_WHITE)
-            || !ctx->black.init(&ctx->black, &ctx->weiqi, W_BLACK)) {
+    } else if (!srv->white.init(&srv->white, &srv->weiqi, W_WHITE)
+            || !srv->black.init(&srv->black, &srv->weiqi, W_BLACK)) {
         return 0;
-    } else if (!interface_init(&ctx->ui, &ctx->weiqi)) {
-        weiqi_free(&ctx->weiqi);
+    } else if (!interface_init(&srv->ui, &srv->weiqi)) {
+        weiqi_free(&srv->weiqi);
         return 0;
     }
     return 1;
 }
 
-void game_free(struct GameContext* ctx) {
-    interface_free(&ctx->ui);
-    weiqi_free(&ctx->weiqi);
-    if (ctx->white.free) ctx->white.free(&ctx->white);
-    if (ctx->black.free) ctx->black.free(&ctx->black);
+void game_free(struct GameServer* srv) {
+    interface_free(&srv->ui);
+    weiqi_free(&srv->weiqi);
+    if (srv->white.free) srv->white.free(&srv->white);
+    if (srv->black.free) srv->black.free(&srv->black);
 }
 
-static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
+static int play_turn(struct GameServer* srv, enum WeiqiColor color) {
     struct Player *p1, *p2;
     unsigned char row, col;
     char move[5];
@@ -37,16 +37,16 @@ static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
     enum WeiqiError err;
 
     if (color == W_WHITE) {
-        p1 = &ctx->white;
-        p2 = &ctx->black;
+        p1 = &srv->white;
+        p2 = &srv->black;
     } else {
-        p1 = &ctx->black;
-        p2 = &ctx->white;
+        p1 = &srv->black;
+        p2 = &srv->white;
     }
     if ((err = p1->get_move(p1, color, &action, &row, &col)) != W_NO_ERROR) {
         return err;
     }
-    if ((err = weiqi_register_move(&ctx->weiqi, color, action, row, col))
+    if ((err = weiqi_register_move(&srv->weiqi, color, action, row, col))
                != W_NO_ERROR) {
         switch (err) {
             case W_ILLEGAL_MOVE:
@@ -69,15 +69,15 @@ static int play_turn(struct GameContext* ctx, enum WeiqiColor color) {
     return err;
 }
 
-static void print_header(struct GameContext* ctx) {
-    struct Move* cur = ctx->weiqi.history.first;
+static void print_header(struct GameServer* srv) {
+    struct Move* cur = srv->weiqi.history.first;
     char hoffset = 0;
 
-    printf("size %d\n", ctx->weiqi.boardSize);
-    printf("handicap %d\n", ctx->weiqi.handicap);
+    printf("size %d\n", srv->weiqi.boardSize);
+    printf("handicap %d\n", srv->weiqi.handicap);
     printf("start\n");
     /* skip handicap placement in history */
-    for (hoffset = 0; hoffset < ctx->weiqi.handicap; hoffset++) {
+    for (hoffset = 0; hoffset < srv->weiqi.handicap; hoffset++) {
         cur = cur->next;
     }
     while (cur) {
@@ -88,42 +88,42 @@ static void print_header(struct GameContext* ctx) {
     }
 }
 
-static int undo(struct GameContext* ctx) {
-    if (       ctx->black.undo(&ctx->black)
-            && ctx->white.undo(&ctx->white)) {
-        weiqi_undo_move(&ctx->weiqi);
+static int undo(struct GameServer* srv) {
+    if (       srv->black.undo(&srv->black)
+            && srv->white.undo(&srv->white)) {
+        weiqi_undo_move(&srv->weiqi);
         return 1;
     }
     return 0;
 }
 
-int game_run(struct GameContext* ctx) {
+int game_run(struct GameServer* srv) {
     enum WeiqiColor color;
 
-    if (!ctx->black.reset(&ctx->black)) return 0;
-    if (!ctx->white.reset(&ctx->white)) return 0;
+    if (!srv->black.reset(&srv->black)) return 0;
+    if (!srv->white.reset(&srv->white)) return 0;
 
-    print_header(ctx);
-    if (       ctx->weiqi.history.last
-            && ctx->weiqi.history.last->color == W_BLACK
-            && play_turn(ctx, W_WHITE) != W_NO_ERROR) {
+    print_header(srv);
+    if (       srv->weiqi.history.last
+            && srv->weiqi.history.last->color == W_BLACK
+            && play_turn(srv, W_WHITE) != W_NO_ERROR) {
         return 0;
     }
 
     color = W_BLACK;
-    while (ctx->ui.status != W_UI_QUIT) {
+    while (srv->ui.status != W_UI_QUIT) {
         enum WeiqiError err;
-        err = play_turn(ctx, color);
+        err = play_turn(srv, color);
         switch (err) {
             case W_ERROR:
                 return 0;
             case W_GAME_OVER:
                 fprintf(stderr, "game over\n");
-                interface_wait(&ctx->ui);
+                interface_wait(&srv->ui);
                 return 1;
             case W_UNDO_MOVE:
-                if (       undo(ctx)
-                        && undo(ctx)) {
+                if (       undo(srv)
+                        && undo(srv)) {
                     continue;
                 } else {
                     fprintf(stderr, "Error: can't undo\n");
@@ -136,7 +136,7 @@ int game_run(struct GameContext* ctx) {
     return 1;
 }
 
-int game_load_file(struct GameContext* ctx, const char* name) {
+int game_load_file(struct GameServer* srv, const char* name) {
     char **cmd;
     char start = 0, end = 0, boardSize = 19, handicap = 0, ok = 1;
     FILE* f;
@@ -175,7 +175,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
             return 0;
         }
     }
-    if (!game_init(ctx, boardSize, handicap)) {
+    if (!game_init(srv, boardSize, handicap)) {
         fprintf(stderr, "Error: game init failed\n");
         return 0;
     }
@@ -190,7 +190,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
                 unsigned char row, col;
                 char pass;
                 if (       !str_to_move(&row, &col, &pass, cmd[1])
-                        || weiqi_register_move(&ctx->weiqi, 
+                        || weiqi_register_move(&srv->weiqi, 
                                                W_WHITE, pass ? W_PASS : W_PLAY,
                                                row, col) != W_NO_ERROR) {
                     fprintf(stderr, "file: invalid move: %s\n", cmd[1]);
@@ -205,7 +205,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
                 unsigned char row, col;
                 char pass;
                 if (       !str_to_move(&row, &col, &pass, cmd[1])
-                        || weiqi_register_move(&ctx->weiqi,
+                        || weiqi_register_move(&srv->weiqi,
                                                W_BLACK, pass ? W_PASS : W_PLAY,
                                                row, col) != W_NO_ERROR) {
                     fprintf(stderr, "file: invalid move: %s\n", cmd[1]);
@@ -218,7 +218,7 @@ int game_load_file(struct GameContext* ctx, const char* name) {
         }
         cmd_free(cmd);
     }
-    if (!ok) game_free(ctx);
+    if (!ok) game_free(srv);
     fclose(f);
     return ok;
 }

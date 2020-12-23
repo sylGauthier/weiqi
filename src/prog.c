@@ -20,7 +20,7 @@ static void print_help(const char* cmd) {
 
 static int player_init(struct Prog* prog, struct Player* player,
                        struct PlayerConf* conf) {
-    struct Interface* ui = prog->mode == WQ_SERVER ? &prog->ctx.ui
+    struct Interface* ui = prog->mode == WQ_SERVER ? &prog->srv.ui
                                                    : &prog->client.ui;
     switch (conf->type) {
         case W_HUMAN:
@@ -75,7 +75,7 @@ int prog_load_defaults(struct Prog* prog) {
     prog->black.type = W_HUMAN;
     prog->white.type = W_HUMAN;
     prog->gameFile = NULL;
-    load_default_theme(&prog->ctx.ui.theme);
+    load_default_theme(&prog->srv.ui.theme);
     return 1;
 }
 
@@ -139,9 +139,9 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 return 0;
             }
             if (!strcmp(argv[i + 1], "pure")) {
-                prog->ctx.ui.theme.style = W_UI_PURE;
+                prog->srv.ui.theme.style = W_UI_PURE;
             } else if (!strcmp(argv[i + 1], "nice")) {
-                prog->ctx.ui.theme.style = W_UI_NICE;
+                prog->srv.ui.theme.style = W_UI_NICE;
             } else {
                 print_help(argv[0]);
                 return 0;
@@ -152,15 +152,15 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
                 print_help(argv[0]);
                 return 0;
             }
-            strncpy(prog->ctx.ui.theme.wood, argv[i + 1],
-                    sizeof(prog->ctx.ui.theme.wood) - 1);
+            strncpy(prog->srv.ui.theme.wood, argv[i + 1],
+                    sizeof(prog->srv.ui.theme.wood) - 1);
             i++;
         } else if (!strcmp(arg, "--color")) {
             if (i + 3 >= argc) {
                 print_help(argv[0]);
                 return 0;
             }
-            SET_VEC3(prog->ctx.ui.theme.board.color,
+            SET_VEC3(prog->srv.ui.theme.board.color,
                      strtof(argv[i + 1], NULL),
                      strtof(argv[i + 2], NULL),
                      strtof(argv[i + 3], NULL));
@@ -196,28 +196,28 @@ int prog_init(struct Prog* prog) {
     int ok = 1;
     switch (prog->mode) {
         case WQ_SERVER:
-            if (       !player_init(prog, &prog->ctx.white, &prog->white)
-                    || !player_init(prog, &prog->ctx.black, &prog->black)) {
+            if (       !player_init(prog, &prog->srv.white, &prog->white)
+                    || !player_init(prog, &prog->srv.black, &prog->black)) {
                 fprintf(stderr, "Error: player init failed\n");
                 ok = 0;
             } else if (    prog->gameFile
-                        && !game_load_file(&prog->ctx, prog->gameFile)) {
+                        && !game_load_file(&prog->srv, prog->gameFile)) {
                 fprintf(stderr, "Error: loading game file failed\n");
                 ok = 0;
             } else if (    !prog->gameFile
-                        && !game_init(&prog->ctx,
+                        && !game_init(&prog->srv,
                                       prog->boardSize,
                                       prog->handicap)) {
                 fprintf(stderr, "Error: game init failed\n");
                 ok = 0;
             }
             if (!ok) {
-                prog->ctx.white.free(&prog->ctx.white);
-                prog->ctx.black.free(&prog->ctx.black);
+                prog->srv.white.free(&prog->srv.white);
+                prog->srv.black.free(&prog->srv.black);
             }
             return ok;
         case WQ_CLIENT:
-            prog->client.ui = prog->ctx.ui;
+            prog->client.ui = prog->srv.ui;
             if (!player_init(prog, &prog->client.player, &prog->white)) {
                 fprintf(stderr, "Error: player init failed\n");
                 ok = 0;
