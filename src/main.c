@@ -15,8 +15,8 @@ int main(int argc, char** argv) {
             && (init = prog_init(&prog))) {
         switch (prog.mode) {
             case WQ_SERVER:
-                ok = game_run(&prog.ctx);
-                game_free(&prog.ctx);
+                ok = game_run(&prog.srv);
+                game_free(&prog.srv);
                 break;
             case WQ_CLIENT:
                 ok = game_client_run(&prog.client);

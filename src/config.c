@@ -29,9 +29,9 @@ static int stone_config(struct Prog* prog, char** cmd) {
                         "stone requires at least one argument\n");
         return 0;
     } else if (!strcmp(cmd[0], "black")) {
-        params = &prog->ctx.ui.theme.bStone;
+        params = &prog->srv.ui.theme.bStone;
     } else if (!strcmp(cmd[0], "white")) {
-        params = &prog->ctx.ui.theme.wStone;
+        params = &prog->srv.ui.theme.wStone;
     } else {
         fprintf(stderr, "Error: config: stone must be followd by color\n");
         return 0;
@@ -69,7 +69,7 @@ static int stone_config(struct Prog* prog, char** cmd) {
 }
 
 static int board_config(struct Prog* prog, char** cmd) {
-    struct InterfaceTheme* theme = &prog->ctx.ui.theme;
+    struct InterfaceTheme* theme = &prog->srv.ui.theme;
 
     if (!cmd[0]) {
         fprintf(stderr, "Error: config: "
