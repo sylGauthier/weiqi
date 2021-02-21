@@ -25,6 +25,7 @@ struct InterfaceTheme {
     struct AssetParams board;
 
     float boardThickness, gridScale;
+    float stoneRadius;
     float pointerSize;
 };
 
@@ -46,12 +47,13 @@ struct Stone3D {
     float radius;
 };
 
-int assets_create(struct Board3D* board,
-                  struct Stone3D* bStone,
-                  struct Stone3D* wStone,
-                  struct Asset3D* pointer,
-                  unsigned char boardSize,
-                  struct InterfaceTheme* theme);
+int board_create(struct Asset3D* board, unsigned int size,
+                 struct InterfaceTheme* theme);
+
+int stone_create(struct Asset3D* stone, char white,
+                 struct InterfaceTheme* theme);
+
+int pointer_create(struct Asset3D* pointer, struct InterfaceTheme* theme);
 
 void asset_init(struct Asset3D* asset);
 void asset_free(struct Asset3D* asset);
