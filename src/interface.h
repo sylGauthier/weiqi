@@ -37,6 +37,7 @@ struct Interface {
     char pass;
 
     enum InterfaceStatus status;
+    char ok;
 
     pthread_t thread;
 };

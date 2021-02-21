@@ -174,7 +174,8 @@ int game_client_run(struct GameClient* client) {
     char** cmd;
     int ok = 1;
 
-    while (ok && (cmd = cmd_get(client->in))) {
+    while (ok && client->ui.status != W_UI_QUIT
+              && (cmd = cmd_get(client->in))) {
         if (!strcmp(cmd[0], "play")) {
             if (!cmd[1] || !cmd[2]) {
                 fprintf(stderr, "Error: GTP: not enough arguments\n");
@@ -203,7 +204,8 @@ int game_client_run(struct GameClient* client) {
         }
         cmd_free(cmd);
     }
-    return ok;
+    if (!client->ui.ok) fprintf(stderr, "Error: UI crashed\n");
+    return ok && client->ui.ok;
 }
 
 void game_client_free(struct GameClient* client) {

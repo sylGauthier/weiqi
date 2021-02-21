@@ -305,6 +305,7 @@ void* run_interface(void* arg) {
         ui->theme.lmvpw = phi * ui->theme.lmvph; 
     }
 
+    ui->ok = 0;
     if (!(ui->viewer = viewer_new(640, 640, "weiqi"))) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
     } else if (!(sceneInit = scene_init(&ui->scene, &ui->camera))) {
@@ -343,6 +344,7 @@ void* run_interface(void* arg) {
         }
         setup_lighting(&ui->scene);
 
+        ui->ok = 1;
         while (ui->status != W_UI_QUIT) {
             viewer_process_events(ui->viewer);
             scene_update_nodes(&ui->scene, update_node, NULL);
@@ -352,7 +354,10 @@ void* run_interface(void* arg) {
             set_title(ui);
         }
     }
-
+    /* in case of error, ui->status is not W_QUIT so the main thread won't know
+     * that the UI crashed, hence we set it to QUIT here.
+     */
+    ui->status = W_UI_QUIT;
     if (bc) asset_free(&ui->board);
     if (bsc) asset_free(&ui->bStone);
     if (wsc) asset_free(&ui->wStone);

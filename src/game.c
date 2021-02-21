@@ -133,6 +133,10 @@ int game_run(struct GameServer* srv) {
                 break;
         }
     }
+    if (!srv->ui.ok) {
+        fprintf(stderr, "Error: UI crashed\n");
+        return 0;
+    }
     return 1;
 }
 
