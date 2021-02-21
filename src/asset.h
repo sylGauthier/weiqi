@@ -23,10 +23,14 @@ struct InterfaceTheme {
     struct AssetParams wStone;
     struct AssetParams pointer;
     struct AssetParams board;
+    struct AssetParams lmvp;
 
     float boardThickness, gridScale;
-    float stoneRadius;
+    float stoneRadius, stoneZScale;
     float pointerSize;
+
+    /* width and height of last move pointer */
+    float lmvpw, lmvph;
 };
 
 struct Asset3D {
@@ -54,6 +58,8 @@ int stone_create(struct Asset3D* stone, char white,
                  struct InterfaceTheme* theme);
 
 int pointer_create(struct Asset3D* pointer, struct InterfaceTheme* theme);
+
+int lmvpointer_create(struct Asset3D* lmvp, struct InterfaceTheme* theme);
 
 void asset_init(struct Asset3D* asset);
 void asset_free(struct Asset3D* asset);

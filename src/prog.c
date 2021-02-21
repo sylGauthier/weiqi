@@ -56,6 +56,7 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     SET_VEC3(theme->wStone.color, 1, 1, 1);
     SET_VEC3(theme->pointer.color, 0, 0, 0);
     SET_VEC3(theme->board.color, 0.65, 0.58, 0.29);
+    SET_VEC3(theme->lmvp.color, 0.6, 0.2, 0.2);
 
     theme->board.roughness = 0.3;
     theme->board.metalness = 0.;
@@ -66,6 +67,7 @@ static void load_default_theme(struct InterfaceTheme* theme) {
 
     theme->boardThickness = 0.01;
     theme->gridScale = 1. / 1.1;
+    theme->stoneZScale = 0.3;
     theme->pointerSize = 0.01;
 }
 
