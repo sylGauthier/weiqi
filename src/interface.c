@@ -79,7 +79,7 @@ static int update_cursor_pos(struct Interface* ui, double x, double y) {
     Vec4 v = {0, 0, -1, 1}, res;
     Vec3 vec, pos, boardPos;
     Mat4 invView;
-    float h = ui->board.thickness / 2;
+    float h = ui->theme.boardThickness / 2;
     float s = ui->weiqi->boardSize - 1;
 
     invert4m(invView, MAT_CONST_CAST(ui->camera.view));
@@ -102,8 +102,8 @@ static int update_cursor_pos(struct Interface* ui, double x, double y) {
     else boardPos[1] = vec[1] * (h - pos[2]) / vec[2] + pos[1];
     boardPos[2] = h;
 
-    boardPos[0] = boardPos[0] / ui->board.gridScale + 0.5;
-    boardPos[1] = boardPos[1] / ui->board.gridScale + 0.5;
+    boardPos[0] = boardPos[0] / ui->theme.gridScale + 0.5;
+    boardPos[1] = boardPos[1] / ui->theme.gridScale + 0.5;
     if (       boardPos[0] >= 0. && boardPos[0] <= 1.
             && boardPos[1] >= 0. && boardPos[1] <= 1.) {
         ui->cursorPos[0] = (boardPos[0] + 1. / (2. * (float) s)) * s;
@@ -152,20 +152,21 @@ static void render_stone(struct Interface* ui, enum WeiqiColor color,
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
     float zScale = 0.3;
-    struct Stone3D* stone;
+    struct Asset3D* stone;
 
     load_id4(model);
     load_id3(invNormal);
     stone = color == W_WHITE ? &ui->wStone : &ui->bStone;
 
-    model[3][0] = ui->board.gridScale * (col * (1. / (s - 1)) - 0.5);
-    model[3][1] = ui->board.gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = ui->board.thickness / 2. + zScale * stone->radius;
+    model[3][0] = ui->theme.gridScale * (col * (1. / (s - 1)) - 0.5);
+    model[3][1] = ui->theme.gridScale * (row * (1. / (s - 1)) - 0.5);
+    model[3][2] = ui->theme.boardThickness / 2.
+                  + zScale * ui->theme.stoneRadius;
     model[2][2] = zScale;
 
-    material_use(stone->geom.mat);
-    material_set_matrices(stone->geom.mat, model, invNormal);
-    vertex_array_render(stone->geom.va);
+    material_use(stone->mat);
+    material_set_matrices(stone->mat, model, invNormal);
+    vertex_array_render(stone->va);
 }
 
 static void render_pointer(struct Interface* ui) {
@@ -177,9 +178,9 @@ static void render_pointer(struct Interface* ui) {
     load_id4(model);
     load_id3(invNormal);
 
-    model[3][0] = ui->board.gridScale * (col * (1. / (s - 1)) - 0.5);
-    model[3][1] = ui->board.gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = ui->board.thickness / 2.;
+    model[3][0] = ui->theme.gridScale * (col * (1. / (s - 1)) - 0.5);
+    model[3][1] = ui->theme.gridScale * (row * (1. / (s - 1)) - 0.5);
+    model[3][2] = ui->theme.boardThickness / 2.;
     model[2][2] = 1.;
 
     material_use(ui->pointer.mat);
@@ -194,9 +195,9 @@ static void render_board(struct Interface* ui) {
 
     load_id4(model);
     load_id3(invNormal);
-    material_use(ui->board.geom.mat);
-    material_set_matrices(ui->board.geom.mat, model, invNormal);
-    vertex_array_render(ui->board.geom.va);
+    material_use(ui->board.mat);
+    material_set_matrices(ui->board.mat, model, invNormal);
+    vertex_array_render(ui->board.va);
 
     s = ui->weiqi->boardSize;
     for (row = 0; row < s; row++) {
@@ -251,23 +252,33 @@ static void set_title(struct Interface* ui) {
 
 void* run_interface(void* arg) {
     struct Interface* ui = arg;
-    int sceneInit = 0, ac;
+    int sceneInit = 0, bc = 0, bsc = 0, wsc = 0, pc = 0;
 
     camera_projection(1., 30 / 360. * 2 * M_PI, 0.001, 1000.,
                       ui->camera.projection);
-    asset_init(&ui->board.geom);
-    asset_init(&ui->wStone.geom);
-    asset_init(&ui->bStone.geom);
+    asset_init(&ui->board);
+    asset_init(&ui->wStone);
+    asset_init(&ui->bStone);
     asset_init(&ui->pointer);
+
+    ui->theme.stoneRadius = 1. / (2. * (float)(ui->weiqi->boardSize))
+                            * ui->theme.gridScale;
+    ui->theme.pointerSize = ui->theme.stoneRadius / 2.;
 
     if (!(ui->viewer = viewer_new(640, 640, "weiqi"))) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
     } else if (!(sceneInit = scene_init(&ui->scene, &ui->camera))) {
         fprintf(stderr, "Error: interface: can't init scene\n");
-    } else if (!(ac = assets_create(&ui->board, &ui->bStone, &ui->wStone,
-                                    &ui->pointer, ui->weiqi->boardSize,
-                                    &ui->theme))) {
-        fprintf(stderr, "Error: interface: can't create assets\n");
+    } else if (!(bc = board_create(&ui->board,
+                                   ui->weiqi->boardSize,
+                                   &ui->theme))) {
+        fprintf(stderr, "Error: interface: can't create board\n");
+    } else if (!(bsc = stone_create(&ui->bStone, 0, &ui->theme))) {
+        fprintf(stderr, "Error: interface: can't create black stone\n");
+    } else if (!(wsc = stone_create(&ui->wStone, 1, &ui->theme))) {
+        fprintf(stderr, "Error: interface: can't create white stone\n");
+    } else if (!(pc = pointer_create(&ui->pointer, &ui->theme))) {
+        fprintf(stderr, "Error: interface: can't create pointer\n");
     } else if (    !(ui->camNode = malloc(sizeof(struct Node)))
                 || !(ui->camOrientation = malloc(sizeof(struct Node)))) {
         fprintf(stderr, "Error: interface: can't create cam node\n");
@@ -300,12 +311,10 @@ void* run_interface(void* arg) {
         }
     }
 
-    if (ac) {
-        asset_free(&ui->board.geom);
-        asset_free(&ui->wStone.geom);
-        asset_free(&ui->bStone.geom);
-        asset_free(&ui->pointer);
-    }
+    if (bc) asset_free(&ui->board);
+    if (bsc) asset_free(&ui->bStone);
+    if (wsc) asset_free(&ui->wStone);
+    if (pc) asset_free(&ui->pointer);
     if (ui->viewer) viewer_free(ui->viewer);
     if (sceneInit) scene_free(&ui->scene, NULL);
     free(ui->camNode);

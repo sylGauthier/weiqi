@@ -23,9 +23,9 @@ struct Interface {
     struct Node* camNode;
     struct Node* camOrientation;
 
-    struct Board3D board;
-    struct Stone3D wStone;
-    struct Stone3D bStone;
+    struct Asset3D board;
+    struct Asset3D wStone;
+    struct Asset3D bStone;
     struct Asset3D pointer;
 
     struct Viewer* viewer;
