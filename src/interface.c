@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -151,7 +152,7 @@ static void render_stone(struct Interface* ui, enum WeiqiColor color,
     Mat4 model;
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
-    float zScale = 0.3;
+    float zScale = ui->theme.stoneZScale;
     struct Asset3D* stone;
 
     load_id4(model);
@@ -188,6 +189,32 @@ static void render_pointer(struct Interface* ui) {
     vertex_array_render(ui->pointer.va);
 }
 
+static void render_lmvpointer(struct Interface* ui) {
+    Mat4 model;
+    Mat3 invNormal;
+    float s = ui->weiqi->boardSize;
+    unsigned char col, row;
+
+    if (!ui->weiqi->history.last || ui->weiqi->history.last->action != W_PLAY) {
+        return;
+    }
+    col = ui->weiqi->history.last->col;
+    row = ui->weiqi->history.last->row;
+
+    load_id4(model);
+    load_id3(invNormal);
+
+    model[3][0] = ui->theme.gridScale * (col * (1. / (s - 1)) - 0.5);
+    model[3][1] = ui->theme.gridScale * (row * (1. / (s - 1)) - 0.5);
+    model[3][2] = ui->theme.boardThickness / 2.
+                  + ui->theme.stoneZScale * ui->theme.stoneRadius;
+    model[2][2] = 1.;
+
+    material_use(ui->lmvpointer.mat);
+    material_set_matrices(ui->lmvpointer.mat, model, invNormal);
+    vertex_array_render(ui->lmvpointer.va);
+}
+
 static void render_board(struct Interface* ui) {
     Mat4 model;
     Mat3 invNormal;
@@ -207,6 +234,7 @@ static void render_board(struct Interface* ui) {
             }
         }
     }
+    render_lmvpointer(ui);
     render_pointer(ui);
 }
 
@@ -252,7 +280,7 @@ static void set_title(struct Interface* ui) {
 
 void* run_interface(void* arg) {
     struct Interface* ui = arg;
-    int sceneInit = 0, bc = 0, bsc = 0, wsc = 0, pc = 0;
+    int sceneInit = 0, bc = 0, bsc = 0, wsc = 0, pc = 0, lmpc = 0;
 
     camera_projection(1., 30 / 360. * 2 * M_PI, 0.001, 1000.,
                       ui->camera.projection);
@@ -260,10 +288,22 @@ void* run_interface(void* arg) {
     asset_init(&ui->wStone);
     asset_init(&ui->bStone);
     asset_init(&ui->pointer);
+    asset_init(&ui->lmvpointer);
 
     ui->theme.stoneRadius = 1. / (2. * (float)(ui->weiqi->boardSize))
                             * ui->theme.gridScale;
     ui->theme.pointerSize = ui->theme.stoneRadius / 2.;
+
+    /* we're fancy and make a last move pointer that's both a golden rectangle
+     * and fits perfectly into a stone
+     */
+    {
+        float phi = (1. + sqrt(5.)) / 2.;
+        float l = 0.6;
+
+        ui->theme.lmvph = l * ui->theme.stoneRadius;
+        ui->theme.lmvpw = phi * ui->theme.lmvph; 
+    }
 
     if (!(ui->viewer = viewer_new(640, 640, "weiqi"))) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
@@ -279,6 +319,8 @@ void* run_interface(void* arg) {
         fprintf(stderr, "Error: interface: can't create white stone\n");
     } else if (!(pc = pointer_create(&ui->pointer, &ui->theme))) {
         fprintf(stderr, "Error: interface: can't create pointer\n");
+    } else if (!(lmpc = lmvpointer_create(&ui->lmvpointer, &ui->theme))) {
+        fprintf(stderr, "Error: interface: can't create last move pointer\n");
     } else if (    !(ui->camNode = malloc(sizeof(struct Node)))
                 || !(ui->camOrientation = malloc(sizeof(struct Node)))) {
         fprintf(stderr, "Error: interface: can't create cam node\n");
@@ -315,6 +357,7 @@ void* run_interface(void* arg) {
     if (bsc) asset_free(&ui->bStone);
     if (wsc) asset_free(&ui->wStone);
     if (pc) asset_free(&ui->pointer);
+    if (lmpc) asset_free(&ui->lmvpointer);
     if (ui->viewer) viewer_free(ui->viewer);
     if (sceneInit) scene_free(&ui->scene, NULL);
     free(ui->camNode);

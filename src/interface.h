@@ -27,6 +27,7 @@ struct Interface {
     struct Asset3D wStone;
     struct Asset3D bStone;
     struct Asset3D pointer;
+    struct Asset3D lmvpointer;
 
     struct Viewer* viewer;
     struct Weiqi* weiqi;

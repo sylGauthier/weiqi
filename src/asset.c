@@ -181,3 +181,24 @@ int pointer_create(struct Asset3D* pointer, struct InterfaceTheme* theme) {
     }
     return ok;
 }
+
+int lmvpointer_create(struct Asset3D* pointer, struct InterfaceTheme* theme) {
+    struct Mesh cube;
+    int ok = 0;
+
+    if (!make_box(&cube,
+                  theme->lmvpw,
+                  theme->lmvph,
+                  theme->stoneZScale * theme->stoneRadius * 2.2)) {
+        fprintf(stderr, "Error: interface: can't create last move pointer\n");
+    } else if (!(pointer->va = vertex_array_new(&cube))) {
+        fprintf(stderr, "Error: interface: can't create vertex array\n");
+    } else {
+        ok = solid_asset(pointer, cube.flags, theme->lmvp.color);
+    }
+    mesh_free(&cube);
+    if (!ok) {
+        vertex_array_free(pointer->va);
+    }
+    return ok;
+}
