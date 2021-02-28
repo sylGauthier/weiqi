@@ -6,7 +6,6 @@
 #include <3dmr/mesh/uvsphere.h>
 
 #include "asset.h"
-#include "grid.h"
 
 void asset_init(struct Asset3D* asset) {
     asset->va = NULL;
@@ -136,8 +135,7 @@ int board_create(struct Asset3D* board, unsigned int size,
         fprintf(stderr, "Error: interface: can't create box\n");
     } else if (!(board->va = vertex_array_new(&box))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
-    } else if (!(tex = grid_gen(size, theme->gridScale, theme->wood,
-                                theme->board.color))) {
+    } else if (!(tex = grid_gen(size, theme))) {
         fprintf(stderr, "Error: interface: can't create grid\n");
     } else {
         switch (theme->style) {

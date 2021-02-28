@@ -2,8 +2,9 @@
 #include <string.h>
 
 #include <3dmr/img/png.h>
+#include <3dmr/render/texture.h>
 
-#include "grid.h"
+#include "asset.h"
 #include "utils.h"
 
 #define SCALE(b, x, y, s) \
@@ -119,22 +120,21 @@ static int load_color(Vec3 color, unsigned char** buffer) {
     return 1;
 }
 
-GLuint grid_gen(unsigned char boardSize, float scale, const char* woodTex,
-                Vec3 color) {
+GLuint grid_gen(unsigned char boardSize, struct InterfaceTheme* theme) {
     unsigned char* texBuf;
     GLuint tex = 0;
 
-    if (strcmp(woodTex, "none")) {
-        if (       !load_tex(W_TEXTURE_DIR, woodTex, &texBuf)
-                && !load_tex(W_TEXTURE_SRC, woodTex, &texBuf)) {
+    if (strcmp(theme->wood, "none")) {
+        if (       !load_tex(W_TEXTURE_DIR, theme->wood, &texBuf)
+                && !load_tex(W_TEXTURE_SRC, theme->wood, &texBuf)) {
             return 0;
         }
     } else {
-        if (!load_color(color, &texBuf)) return 0;
+        if (!load_color(theme->board.color, &texBuf)) return 0;
     }
 
-    draw_grid(texBuf, boardSize, scale);
-    draw_dots(texBuf, boardSize, scale);
+    draw_grid(texBuf, boardSize, theme->gridScale);
+    draw_dots(texBuf, boardSize, theme->gridScale);
     tex = texture_load_from_uchar_buffer(texBuf, GRID_RES, GRID_RES, 3, 0);
     if (tex) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

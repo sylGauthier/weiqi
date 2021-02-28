@@ -4,6 +4,8 @@
 #include <3dmr/material/solid.h>
 #include <3dmr/material/pbr.h>
 
+#define GRID_RES 1024
+
 enum InterfaceStyle {
     W_UI_PURE,
     W_UI_NICE
@@ -50,6 +52,8 @@ struct Stone3D {
     struct Asset3D geom;
     float radius;
 };
+
+GLuint grid_gen(unsigned char boardSize, struct InterfaceTheme* theme);
 
 int board_create(struct Asset3D* board, unsigned int size,
                  struct InterfaceTheme* theme);
