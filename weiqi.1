@@ -95,6 +95,10 @@ The color to use for the board if texture is set to none.
 .I r g b
 are floats between 0 and 1.
 
+.TP
+.BI "\-\-coordinates"
+Display coordinates on the board using letters and numbers.
+
 .SH CONFIG
 .B weiqi
 looks for a configuration file
@@ -127,6 +131,11 @@ similar as above, texture takes a string for the filename of the texture.
 Sets the size (as in the number of vertices on each side of the grid) and the
 handicap value.  Size should generally be between 5 and 25, handicap between 0
 and 9.
+
+.TP
+.BI "board " "coordinates on\fR|\fPoff"
+Display or not the coordinates on the board, with letters on the X axis and
+numbers on the Y axis.
 
 .TP
 .BI "player " "white\fR|\fPblack human\fR|<\fPengine_name\fR>\fP"
