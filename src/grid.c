@@ -1,17 +1,23 @@
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include <3dmr/img/png.h>
 #include <3dmr/render/texture.h>
+#include <3dmr/font/text.h>
+#include <3dmr/font/ttf.h>
 
 #include "asset.h"
 #include "utils.h"
 
+#define W_COORD_LETTERS "ABCDEFGHJKLMNOPQRSTUVWXYZ"
+#define W_COORD_NUMBERS "0123456789"
+
 #define SCALE(b, x, y, s) \
 { \
-    (b)[3 * ((x) * GRID_RES + (y))] *= (s); \
-    (b)[3 * ((x) * GRID_RES + (y)) + 1] *= (s); \
-    (b)[3 * ((x) * GRID_RES + (y)) + 2] *= (s); \
+    (b)[3 * ((y) * GRID_RES + (x))] *= (s); \
+    (b)[3 * ((y) * GRID_RES + (x)) + 1] *= (s); \
+    (b)[3 * ((y) * GRID_RES + (x)) + 2] *= (s); \
 }
 
 static float circle(int i, int j, int radius) {
@@ -85,6 +91,98 @@ static void draw_grid(unsigned char* buf, unsigned int size, float scale) {
     }
 }
 
+static int load_font(struct TTF* ttf, const char* dir, const char* name) {
+    char* filename;
+    char ok;
+
+    if (!(filename = malloc(strlen(dir) + strlen(name) + 1))) return 0;
+    strcpy(filename, dir);
+    strcpy(filename + strlen(dir), name);
+
+    ok = ttf_load(filename, ttf);
+    free(filename);
+    return ok;
+}
+
+static float sdm(unsigned char d) {
+    if (d >= 127) return 0;
+    else return 1. - powf((float) d / 127., 2);
+}
+
+static void buf_mask(unsigned char* buf, unsigned int x, unsigned int y,
+                     unsigned char* mask, unsigned int w, unsigned int h) {
+    unsigned int i, j;
+
+    for (j = 0; j < h; j++) {
+        for (i = 0; i < w; i++) {
+            if (       x + i > w / 2 && y + j > h / 2
+                    && x + i - w / 2 < GRID_RES && y + j - h / 2 < GRID_RES) {
+                SCALE(buf, x + i - w / 2, y + j - h / 2, sdm(mask[j * w + i]));
+            }
+        }
+    }
+}
+
+static int draw_coordinates(unsigned char* buf, unsigned int size,
+                            struct InterfaceTheme* theme) {
+    struct TTF ttf;
+    struct Character *letters = NULL, *numbers = NULL;
+    size_t numLetters, numNumbers;
+
+    if (       !load_font(&ttf, W_DATA_DIR"/", theme->font)
+            && !load_font(&ttf, W_DATA_SRC"/", theme->font)) {
+        fprintf(stderr, "Error: can't load font: %s\n", theme->font);
+        return 0;
+    }
+    if (       !ttf_load_chars(&ttf, W_COORD_LETTERS, &letters, &numLetters)
+            || !ttf_load_chars(&ttf, W_COORD_NUMBERS, &numbers, &numNumbers)) {
+        fprintf(stderr, "Error: can't load some chars\n");
+    } else {
+        unsigned int i;
+        unsigned char* sdm;
+        size_t w, h = GRID_RES / 60;
+        for (i = 0; i < size; i++) {
+            unsigned int x = (((((float) i) / ((float) (size - 1))) - 0.5)
+                             * theme->gridScale + 0.5) * GRID_RES;
+            unsigned int y1 = ((-0.5 / (float) (size - 1) - 0.5)
+                              * theme->gridScale + 0.5) * GRID_RES;
+            unsigned int y2 = ((0.5 / (float) (size - 1) + 0.5)
+                              * theme->gridScale + 0.5) * GRID_RES;
+
+            if (!(sdm = text_to_sdm_buffer(letters + i, 1, h, &w))) break;
+            buf_mask(buf, x, y1, sdm, w, h);
+            buf_mask(buf, x, y2, sdm, w, h);
+            free(sdm);
+        }
+        for (i = 1; i <= size; i++) {
+            unsigned int y = (((((float) i - 1) / ((float) (size - 1))) - 0.5)
+                             * theme->gridScale + 0.5) * GRID_RES;
+            unsigned int x1 = ((-0.5 / (float) (size - 1) - 0.5)
+                              * theme->gridScale + 0.5) * GRID_RES;
+            unsigned int x2 = ((0.5 / (float) (size - 1) + 0.5)
+                              * theme->gridScale + 0.5) * GRID_RES;
+
+            if (i < 10) {
+                if (!(sdm = text_to_sdm_buffer(numbers + i, 1, h, &w))) break;
+            } else {
+                struct Character c[2];
+                c[0] = numbers[i / 10];
+                c[1] = numbers[i % 10];
+                if (!(sdm = text_to_sdm_buffer(c, 2, h, &w))) break;
+            }
+            buf_mask(buf, x1, y, sdm, w, h);
+            buf_mask(buf, x2, y, sdm, w, h);
+            free(sdm);
+        }
+        while (numLetters) character_free(letters + --numLetters);
+        while (numNumbers) character_free(numbers + --numNumbers);
+        free(letters);
+        free(numbers);
+    }
+    ttf_free(&ttf);
+    return 0;
+}
+
 static int load_tex(const char* dir, const char* name, unsigned char** buffer) {
     GLint ralign = 0;
     unsigned int width, height, channels, ok = 0;
@@ -125,8 +223,8 @@ GLuint grid_gen(unsigned char boardSize, struct InterfaceTheme* theme) {
     GLuint tex = 0;
 
     if (strcmp(theme->wood, "none")) {
-        if (       !load_tex(W_TEXTURE_DIR, theme->wood, &texBuf)
-                && !load_tex(W_TEXTURE_SRC, theme->wood, &texBuf)) {
+        if (       !load_tex(W_DATA_DIR"/textures/", theme->wood, &texBuf)
+                && !load_tex(W_DATA_SRC"/textures/", theme->wood, &texBuf)) {
             return 0;
         }
     } else {
@@ -135,6 +233,7 @@ GLuint grid_gen(unsigned char boardSize, struct InterfaceTheme* theme) {
 
     draw_grid(texBuf, boardSize, theme->gridScale);
     draw_dots(texBuf, boardSize, theme->gridScale);
+    if (theme->coordinates) draw_coordinates(texBuf, boardSize, theme);
     tex = texture_load_from_uchar_buffer(texBuf, GRID_RES, GRID_RES, 3, 0);
     if (tex) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

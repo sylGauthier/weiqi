@@ -290,10 +290,14 @@ void* run_interface(void* arg) {
     asset_init(&ui->pointer);
     asset_init(&ui->lmvpointer);
 
+    if (ui->theme.gridScale == 0.) {
+        float s = ui->weiqi->boardSize;
+        ui->theme.gridScale = s / (s + 2);
+    }
+
     ui->theme.stoneRadius = 1. / (2. * (float)(ui->weiqi->boardSize))
                             * ui->theme.gridScale;
     ui->theme.pointerSize = ui->theme.stoneRadius / 2.;
-
     /* we're fancy and make a last move pointer that's both a golden rectangle
      * and fits perfectly into a stone
      */

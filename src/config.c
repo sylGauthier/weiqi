@@ -81,6 +81,14 @@ static int board_config(struct Prog* prog, char** cmd) {
             return 0;
         }
         prog->boardSize = strtol(cmd[1], NULL, 10);
+    } else if (!strcmp(cmd[0], "coordinates")) {
+        if (!cmd[1]) {
+            fprintf(stderr, "Error: config: "
+                            "coordinates requires one argument (on|off)\n");
+            return 0;
+        }
+        if (!strcmp(cmd[1], "on")) theme->coordinates = 1;
+        else theme->coordinates = 0;
     } else if (!strcmp(cmd[0], "texture")) {
         if (!cmd[1]) {
             fprintf(stderr, "Error: config: texture requires one argument\n");

@@ -33,6 +33,11 @@ struct InterfaceTheme {
 
     /* width and height of last move pointer */
     float lmvpw, lmvph;
+
+    /* boolean for whether or not we print the coordinates on the board */
+    char coordinates;
+    /* font to use for coordinates */
+    char font[128];
 };
 
 struct Asset3D {

@@ -49,6 +49,7 @@ static int player_init(struct Prog* prog, struct Player* player,
 }
 
 static void load_default_theme(struct InterfaceTheme* theme) {
+    memset(theme, 0, sizeof(*theme));
     theme->style = W_UI_NICE;
     strcpy(theme->wood, "wood.png");
 
@@ -66,9 +67,12 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     theme->bStone.metalness = 0;
 
     theme->boardThickness = 0.01;
-    theme->gridScale = 1. / 1.1;
+    theme->gridScale = 0.;
     theme->stoneZScale = 0.3;
     theme->pointerSize = 0.01;
+
+    theme->coordinates = 0;
+    strcpy(theme->font, "font.ttf");
 }
 
 int prog_load_defaults(struct Prog* prog) {
@@ -157,6 +161,8 @@ int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv) {
             strncpy(prog->srv.ui.theme.wood, argv[i + 1],
                     sizeof(prog->srv.ui.theme.wood) - 1);
             i++;
+        } else if (!strcmp(arg, "--coordinates")) {
+            prog->srv.ui.theme.coordinates = 1;
         } else if (!strcmp(arg, "--color")) {
             if (i + 3 >= argc) {
                 print_help(argv[0]);
