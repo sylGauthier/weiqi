@@ -43,6 +43,7 @@ install: weiqi $(TEXFILES)
 	cp weiqi $(BIN_DIR)
 	cp wrappers/* $(BIN_DIR)
 	cp $(TEXFILES) $(TEXTURE_DIR)
+	cp $(FONTFILES) $(DATA_DIR)
 	cp weiqi.1 $(MAN_DIR)
 	if [ ! -f ~/.weiqi ] ; then \
 		touch ~/.weiqi ; \
