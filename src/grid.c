@@ -1,11 +1,15 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 
 #include <3dmr/img/png.h>
 #include <3dmr/render/texture.h>
+
+#ifdef W_COORDINATES
 #include <3dmr/font/text.h>
 #include <3dmr/font/ttf.h>
+#endif
 
 #include "asset.h"
 #include "utils.h"
@@ -91,6 +95,7 @@ static void draw_grid(unsigned char* buf, unsigned int size, float scale) {
     }
 }
 
+#ifdef W_COORDINATES
 static int load_font(struct TTF* ttf, const char* dir, const char* name) {
     char* filename;
     char ok;
@@ -182,6 +187,14 @@ static int draw_coordinates(unsigned char* buf, unsigned int size,
     ttf_free(&ttf);
     return 0;
 }
+
+#else
+static int draw_coordinates(unsigned char* buf, unsigned int size,
+                            struct InterfaceTheme* theme) {
+    fprintf(stderr, "Warning: coordinate support disabled at build time\n");
+    return 1;
+}
+#endif
 
 static int load_tex(const char* dir, const char* name, unsigned char** buffer) {
     GLint ralign = 0;
