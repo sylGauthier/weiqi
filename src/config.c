@@ -2,14 +2,57 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "prog.h"
+#include "config.h"
 #include "cmd.h"
 
-static int add_engine(struct Prog* prog, const char* name, const char* cmd) {
+#define SET_VEC3(v, a, b, c) v[0] = (a); v[1] = (b); v[2] = (c);
+
+static void load_default_theme(struct InterfaceTheme* theme) {
+    memset(theme, 0, sizeof(*theme));
+    theme->style = W_UI_NICE;
+    strcpy(theme->wood, "wood.png");
+
+    SET_VEC3(theme->bStone.color, 0, 0, 0);
+    SET_VEC3(theme->wStone.color, 1, 1, 1);
+    SET_VEC3(theme->pointer.color, 0, 0, 0);
+    SET_VEC3(theme->board.color, 0.65, 0.58, 0.29);
+    SET_VEC3(theme->lmvp.color, 0.6, 0.2, 0.2);
+
+    theme->board.roughness = 0.3;
+    theme->board.metalness = 0.;
+    theme->wStone.roughness = 0.3;
+    theme->wStone.metalness = 0;
+    theme->bStone.roughness = 0.3;
+    theme->bStone.metalness = 0;
+
+    theme->boardThickness = 0.01;
+    theme->gridScale = 0.;
+    theme->stoneZScale = 0.3;
+    theme->pointerSize = 0.01;
+
+    theme->coordinates = 0;
+    strcpy(theme->font, "font.ttf");
+}
+
+int config_load_defaults(struct Config* config) {
+    memset(config, 0, sizeof(*config));
+    config->boardSize = 19;
+    config->handicap = 0;
+    config->black.type = W_HUMAN;
+    config->white.type = W_HUMAN;
+    config->mode = WQ_SERVER;
+    config->numEngines = 0;
+    load_default_theme(&config->theme);
+    return 1;
+}
+
+static int add_engine(struct Config* config,
+                      const char* name,
+                      const char* cmd) {
     struct Engine* e;
 
-    if (prog->numEngines >= W_NUM_ENGINES) return 0;
-    e = prog->engines + prog->numEngines;
+    if (config->numEngines >= W_NUM_ENGINES) return 0;
+    e = config->engines + config->numEngines;
     if (       !(e->name = malloc(strlen(name) + 1))
             || !(e->command = malloc(strlen(cmd) + 1))) {
         free(e->name);
@@ -17,11 +60,11 @@ static int add_engine(struct Prog* prog, const char* name, const char* cmd) {
     }
     strcpy(e->name, name);
     strcpy(e->command, cmd);
-    prog->numEngines++;
+    config->numEngines++;
     return 1;
 }
 
-static int stone_config(struct Prog* prog, char** cmd) {
+static int stone_config(struct Config* config, char** cmd) {
     struct AssetParams* params;
 
     if (!cmd[0]) {
@@ -29,9 +72,9 @@ static int stone_config(struct Prog* prog, char** cmd) {
                         "stone requires at least one argument\n");
         return 0;
     } else if (!strcmp(cmd[0], "black")) {
-        params = &prog->srv.ui.theme.bStone;
+        params = &config->theme.bStone;
     } else if (!strcmp(cmd[0], "white")) {
-        params = &prog->srv.ui.theme.wStone;
+        params = &config->theme.wStone;
     } else {
         fprintf(stderr, "Error: config: stone must be followd by color\n");
         return 0;
@@ -68,8 +111,8 @@ static int stone_config(struct Prog* prog, char** cmd) {
     return 1;
 }
 
-static int board_config(struct Prog* prog, char** cmd) {
-    struct InterfaceTheme* theme = &prog->srv.ui.theme;
+static int board_config(struct Config* config, char** cmd) {
+    struct InterfaceTheme* theme = &config->theme;
 
     if (!cmd[0]) {
         fprintf(stderr, "Error: config: "
@@ -80,7 +123,7 @@ static int board_config(struct Prog* prog, char** cmd) {
             fprintf(stderr, "Error: config: size requires one argument\n");
             return 0;
         }
-        prog->boardSize = strtol(cmd[1], NULL, 10);
+        config->boardSize = strtol(cmd[1], NULL, 10);
     } else if (!strcmp(cmd[0], "coordinates")) {
         if (!cmd[1]) {
             fprintf(stderr, "Error: config: "
@@ -124,17 +167,51 @@ static int board_config(struct Prog* prog, char** cmd) {
     return 1;
 }
 
-char* config_find_engine(struct Prog* prog, const char* name) {
+char* config_find_engine(struct Config* config, const char* name) {
     unsigned int i;
-    for (i = 0; i < prog->numEngines; i++) {
-        if (!strcmp(name, prog->engines[i].name)) {
-            return prog->engines[i].command;
+    for (i = 0; i < config->numEngines; i++) {
+        if (!strcmp(name, config->engines[i].name)) {
+            return config->engines[i].command;
         }
     }
     return NULL;
 }
 
-static int player_config(struct Prog* prog, char** cmd) {
+static int config_load_player(struct Config* config,
+                              struct PlayerConf* c,
+                              const char* p) {
+    if (!strcmp(p, "human")) {
+        c->type = W_HUMAN;
+    } else if (!strncmp(p, "socket:", strlen("socket:"))) {
+        c->type = W_GTP_SOCKET;
+        c->gtpCmd = p + 7;
+    } else {
+        c->type = W_GTP_LOCAL;
+        if (!(c->gtpCmd = config_find_engine(config, p))) {
+            fprintf(stderr, "Error: invalid GTP engine: %s\n", p);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int rand_assign(struct Config* config, const char* p1, const char* p2) {
+    srand(time(NULL));
+    if (rand() % 2 == 0) {
+        if (       !config_load_player(config, &config->white, p1)
+                || !config_load_player(config, &config->black, p2)) {
+            return 0;
+        }
+    } else {
+        if (       !config_load_player(config, &config->black, p1)
+                || !config_load_player(config, &config->white, p2)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int player_config(struct Config* config, char** cmd) {
     struct PlayerConf* conf;
 
     if (!cmd[0] || !cmd[1]) {
@@ -142,34 +219,33 @@ static int player_config(struct Prog* prog, char** cmd) {
         return 0;
     }
     if (!strcmp(cmd[0], "black")) {
-        conf = &prog->black;
+        conf = &config->black;
     } else if (!strcmp(cmd[0], "white")) {
-        conf = &prog->white;
+        conf = &config->white;
     } else if (!strcmp(cmd[0], "random")) {
         if (!cmd[2]) {
             fprintf(stderr, "Error: config: 'player random' "
                             "requires an extra 2 arguments\n");
             return 0;
         }
-        return config_rand_assign(prog, cmd[1], cmd[2]);
+        return rand_assign(config, cmd[1], cmd[2]);
     } else {
         fprintf(stderr, "Error: config: player: invalid arg: %s\n", cmd[1]);
         return 0;
     }
 
-    if (!config_load_player(prog, conf, cmd[1])) {
+    if (!config_load_player(config, conf, cmd[1])) {
         return 0;
     }
     return 1;
 }
 
-int prog_load_config(struct Prog* prog) {
+int config_load_config(struct Config* config) {
     FILE* f;
     char** cmd;
     char *home, *confpath;
     char ok = 1;
 
-    prog->numEngines = 0;
     if (!(home = getenv("HOME"))) return 0;
     if (!(confpath = malloc(strlen(home) + strlen("/.weiqi") + 1))) return 0;
     sprintf(confpath, "%s/.weiqi", home);
@@ -186,22 +262,22 @@ int prog_load_config(struct Prog* prog) {
                 fprintf(stderr, "Error: config: 'engine' needs 2 arguments\n");
                 ok = 0;
             } else {
-                ok = add_engine(prog, cmd[1], cmd[2]);
+                ok = add_engine(config, cmd[1], cmd[2]);
             }
         } else if (!strcmp(cmd[0], "stone")) {
-            ok = stone_config(prog, cmd + 1);
+            ok = stone_config(config, cmd + 1);
         } else if (!strcmp(cmd[0], "board")) {
-            ok = board_config(prog, cmd + 1);
+            ok = board_config(config, cmd + 1);
         } else if (!strcmp(cmd[0], "handicap")) {
             if (cmd[1]) {
-                prog->handicap = strtol(cmd[1], NULL, 10);
+                config->handicap = strtol(cmd[1], NULL, 10);
                 ok = 1;
             } else {
                 fprintf(stderr, "Error: config: 'handicap' needs 1 argument\n");
                 ok = 0;
             }
         } else if (!strcmp(cmd[0], "player")) {
-            ok = player_config(prog, cmd + 1);
+            ok = player_config(config, cmd + 1);
         } else {
             fprintf(stderr, "Warning: config: ignoring unknown command: %s\n",
                     cmd[0]);
@@ -215,35 +291,137 @@ int prog_load_config(struct Prog* prog) {
     return ok;
 }
 
+static void print_help(const char* cmd) {
+    printf("%s [OPTIONS]\n"
+           "    -s --size <size>: board size (5-25, default 19)\n"
+           "    -h --handicap <num>: number of handicaps (default 0)\n"
+           "    -b --black <human|gnugo>: black player (default human)\n"
+           "    -w --white <human|gnugo>: white player (default gnugo)\n"
+           "    -l --load <file>: load a saved game\n"
+           "    -i --interface <pure|nice>: interface theme (default nice)\n",
+           cmd);
+}
 
-int config_load_player(struct Prog* prog, struct PlayerConf* c, const char* p) {
-    if (!strcmp(p, "human")) {
-        c->type = W_HUMAN;
-    } else if (!strncmp(p, "socket:", strlen("socket:"))) {
-        c->type = W_GTP_SOCKET;
-        c->gtpCmd = p + 7;
-    } else {
-        c->type = W_GTP_LOCAL;
-        if (!(c->gtpCmd = config_find_engine(prog, p))) {
-            fprintf(stderr, "Error: invalid GTP engine: %s\n", p);
+int config_parse_args(struct Config* config, unsigned int argc, char** argv) {
+    unsigned int i;
+
+    for (i = 1; i < argc; i++) {
+        char* arg = argv[i];
+
+        if (!strcmp(arg, "-w") || !strcmp(arg, "--white")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            if (!config_load_player(config, &config->white, argv[i + 1])) {
+                return 0;
+            }
+            i++;
+        } else if (!strcmp(arg, "-b") || !strcmp(arg, "--black")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            if (!config_load_player(config, &config->black, argv[i + 1])) {
+                return 0;
+            }
+            i++;
+        } else if (!strcmp(arg, "-r") || !strcmp(arg, "--random")) {
+            if (i >= argc - 2) {
+                print_help(argv[0]);
+                return 0;
+            }
+            if (!rand_assign(config, argv[i + 1], argv[i + 2])) {
+                return 0;
+            }
+            i += 2;
+        } else if (!strcmp(arg, "-s") || !strcmp(arg, "--size")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            config->boardSize = strtol(argv[i + 1], NULL, 10);
+            i++;
+        } else if (!strcmp(arg, "-h") || !strcmp(arg, "--handicap")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            config->handicap = strtol(argv[i + 1], NULL, 10);
+            i++;
+        } else if (!strcmp(arg, "-l") || !strcmp(arg, "--load")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            config->gameFile = argv[i + 1];
+            i++;
+        } else if (!strcmp(arg, "-i") || !strcmp(arg, "--interface")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            if (!strcmp(argv[i + 1], "pure")) {
+                config->theme.style = W_UI_PURE;
+            } else if (!strcmp(argv[i + 1], "nice")) {
+                config->theme.style = W_UI_NICE;
+            } else {
+                print_help(argv[0]);
+                return 0;
+            }
+            i++;
+        } else if (!strcmp(arg, "--texture")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            strncpy(config->theme.wood, argv[i + 1],
+                    sizeof(config->theme.wood) - 1);
+            i++;
+        } else if (!strcmp(arg, "--coordinates")) {
+            config->theme.coordinates = 1;
+        } else if (!strcmp(arg, "--color")) {
+            if (i + 3 >= argc) {
+                print_help(argv[0]);
+                return 0;
+            }
+            SET_VEC3(config->theme.board.color,
+                     strtof(argv[i + 1], NULL),
+                     strtof(argv[i + 2], NULL),
+                     strtof(argv[i + 3], NULL));
+            SET_VEC3(config->theme.board.color,
+                     strtof(argv[i + 1], NULL),
+                     strtof(argv[i + 2], NULL),
+                     strtof(argv[i + 3], NULL));
+            i += 3;
+        } else if (!strcmp(arg, "--client")) {
+            if (i >= argc - 2) {
+                print_help(argv[0]);
+                return 0;
+            }
+            config->mode = WQ_CLIENT;
+            config->sockpath = argv[i + 2];
+            if (!config_load_player(config, &config->white, argv[i + 1])) {
+                return 0;
+            }
+            i += 2;
+        } else {
+            print_help(argv[0]);
             return 0;
         }
+    }
+    if (config->boardSize < 5 || config->boardSize > 25) {
+        fprintf(stderr, "Error: invalid board size, we only support 5 to 25\n");
+        return 0;
     }
     return 1;
 }
 
-int config_rand_assign(struct Prog* prog, const char* p1, const char* p2) {
-    srand(time(NULL));
-    if (rand() % 2 == 0) {
-        if (       !config_load_player(prog, &prog->white, p1)
-                || !config_load_player(prog, &prog->black, p2)) {
-            return 0;
-        }
-    } else {
-        if (       !config_load_player(prog, &prog->black, p1)
-                || !config_load_player(prog, &prog->white, p2)) {
-            return 0;
-        }
+void config_free(struct Config* config) {
+    unsigned int i;
+
+    for (i = 0; i < config->numEngines; i++) {
+        free(config->engines[i].name);
+        free(config->engines[i].command);
     }
-    return 1;
 }

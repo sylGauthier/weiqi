@@ -1,7 +1,7 @@
 #ifndef PROG_H
 #define PROG_H
 
-#include "game.h"
+#include "theme.h"
 
 #define W_NUM_ENGINES 32
 
@@ -26,7 +26,7 @@ enum GameMode {
     WQ_CLIENT
 };
 
-struct Prog {
+struct Config {
     unsigned char boardSize;
     unsigned char handicap;
     struct PlayerConf white;
@@ -37,21 +37,18 @@ struct Prog {
     const char* sockpath;
 
     enum GameMode mode;
-    struct GameServer srv;
-    struct GameClient client;
 
     struct Engine engines[W_NUM_ENGINES];
     unsigned int numEngines;
+
+    struct InterfaceTheme theme;
 };
 
-char* config_find_engine(struct Prog* prog, const char* name);
-int config_load_player(struct Prog* prog, struct PlayerConf* c, const char* p);
-int config_rand_assign(struct Prog* prog, const char* p1, const char* p2);
+char* config_find_engine(struct Config* conf, const char* name);
 
-int prog_load_defaults(struct Prog* prog);
-int prog_load_config(struct Prog* prog);
-int prog_parse_args(struct Prog* prog, unsigned int argc, char** argv);
-int prog_init(struct Prog* prog);
-void prog_free(struct Prog* prog);
+int config_load_defaults(struct Config* conf);
+int config_load_config(struct Config* conf);
+int config_parse_args(struct Config* conf, unsigned int argc, char** argv);
+void config_free(struct Config* config);
 
 #endif

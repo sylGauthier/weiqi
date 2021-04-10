@@ -94,30 +94,33 @@ static int client_init(struct GameClient* c) {
         cmd_free(cmd);
     }
     if (ok) {
-        c->weiqi.boardSize = s;
-        c->weiqi.handicap = 0;
+        c->weiqi->boardSize = s;
+        c->weiqi->handicap = 0;
     }
     return ok;
 }
 
-int game_client_init(struct GameClient* client, const char* socketPath) {
-    if (!client_connect(client, socketPath)) return 0;
+int game_client_init(struct GameClient* client,
+                     struct Interface* ui,
+                     struct Weiqi* weiqi,
+                     struct Config* config) {
+    int pinit = 0;
+
+    client->ui = ui;
+    client->weiqi = weiqi;
+    if (!client_connect(client, config->sockpath)) return 0;
     if (!client_init(client)) return 0;
-    if (!client->player.init(&client->player,
-                             &client->weiqi,
-                             client->player.color)) {
-        return 0;
+    if (!(pinit = player_init(&client->player, &config->white, ui))) {
+        fprintf(stderr, "Error: client: can't init player from conf\n");
+    } else if (!client->player.init(&client->player,
+                                    client->weiqi,
+                                    client->player.color)) {
+        fprintf(stderr, "Error: client: can't init player\n");
+    } else {
+        return 1;
     }
-    if (!weiqi_init(&client->weiqi,
-                    client->weiqi.boardSize,
-                    client->weiqi.handicap)) {
-        return 0;
-    }
-    if (!interface_init(&client->ui, &client->weiqi)) {
-        weiqi_free(&client->weiqi);
-        return 0;
-    }
-    return 1;
+    if (pinit && client->player.free) client->player.free(&client->player);
+    return 0;
 }
 
 static int client_play(struct GameClient* c, const char* color,
@@ -132,7 +135,7 @@ static int client_play(struct GameClient* c, const char* color,
     str_to_move(&row, &col, &pass, move);
     action = pass ? W_PASS : W_PLAY;
 
-    if (weiqi_register_move(&c->weiqi, wcol, action, row, col) != W_NO_ERROR) {
+    if (weiqi_register_move(c->weiqi, wcol, action, row, col) != W_NO_ERROR) {
         fprintf(stderr, "Error: we received an invalid move\n");
         return W_ERROR;
     }
@@ -159,7 +162,7 @@ static int client_genmove(struct GameClient* c, const char* color) {
     err = c->player.get_move(&c->player, wcol, &action, &row, &col);
     if (err != W_NO_ERROR) return err;
 
-    err = weiqi_register_move(&c->weiqi, wcol, action, row, col);
+    err = weiqi_register_move(c->weiqi, wcol, action, row, col);
     if (err != W_NO_ERROR) return err;
 
     if (action == W_PASS) strcpy(move, "PASS");
@@ -174,7 +177,7 @@ int game_client_run(struct GameClient* client) {
     char** cmd;
     int ok = 1;
 
-    while (ok && client->ui.status != W_UI_QUIT
+    while (ok && client->ui->status != W_UI_QUIT
               && (cmd = cmd_get(client->in))) {
         if (!strcmp(cmd[0], "play")) {
             if (!cmd[1] || !cmd[2]) {
@@ -197,20 +200,18 @@ int game_client_run(struct GameClient* client) {
                 }
                 if (err == W_GAME_OVER) {
                     fprintf(stderr, "game over");
-                    interface_wait(&client->ui);
+                    interface_wait(client->ui);
                     break;
                 }
             }
         }
         cmd_free(cmd);
     }
-    if (!client->ui.ok) fprintf(stderr, "Error: UI crashed\n");
-    return ok && client->ui.ok;
+    if (!client->ui->ok) fprintf(stderr, "Error: UI crashed\n");
+    return ok && client->ui->ok;
 }
 
 void game_client_free(struct GameClient* client) {
-    interface_free(&client->ui);
-    client->player.free(&client->player);
-    weiqi_free(&client->weiqi);
+    if (client->player.free) client->player.free(&client->player);
     return;
 }

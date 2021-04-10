@@ -16,8 +16,6 @@ enum InterfaceStatus {
 };
 
 struct Interface {
-    struct InterfaceTheme theme;
-
     struct Scene scene;
     struct Camera camera;
     struct Node* camNode;
@@ -29,6 +27,7 @@ struct Interface {
     struct Asset3D pointer;
     struct Asset3D lmvpointer;
 
+    struct InterfaceTheme* theme;
     struct Viewer* viewer;
     struct Weiqi* weiqi;
 
@@ -42,7 +41,9 @@ struct Interface {
     pthread_t thread;
 };
 
-int interface_init(struct Interface* ui, struct Weiqi* weiqi);
+int interface_init(struct Interface* ui,
+                   struct Weiqi* weiqi,
+                   struct InterfaceTheme* theme);
 
 void interface_free(struct Interface* ui);
 void interface_wait(struct Interface* ui);

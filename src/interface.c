@@ -80,7 +80,7 @@ static int update_cursor_pos(struct Interface* ui, double x, double y) {
     Vec4 v = {0, 0, -1, 1}, res;
     Vec3 vec, pos, boardPos;
     Mat4 invView;
-    float h = ui->theme.boardThickness / 2;
+    float h = ui->theme->boardThickness / 2;
     float s = ui->weiqi->boardSize - 1;
 
     invert4m(invView, MAT_CONST_CAST(ui->camera.view));
@@ -103,8 +103,8 @@ static int update_cursor_pos(struct Interface* ui, double x, double y) {
     else boardPos[1] = vec[1] * (h - pos[2]) / vec[2] + pos[1];
     boardPos[2] = h;
 
-    boardPos[0] = boardPos[0] / ui->theme.gridScale + 0.5;
-    boardPos[1] = boardPos[1] / ui->theme.gridScale + 0.5;
+    boardPos[0] = boardPos[0] / ui->theme->gridScale + 0.5;
+    boardPos[1] = boardPos[1] / ui->theme->gridScale + 0.5;
     if (       boardPos[0] >= 0. && boardPos[0] <= 1.
             && boardPos[1] >= 0. && boardPos[1] <= 1.) {
         ui->cursorPos[0] = (boardPos[0] + 1. / (2. * (float) s)) * s;
@@ -152,17 +152,17 @@ static void render_stone(struct Interface* ui, enum WeiqiColor color,
     Mat4 model;
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
-    float zScale = ui->theme.stoneZScale;
+    float zScale = ui->theme->stoneZScale;
     struct Asset3D* stone;
 
     load_id4(model);
     load_id3(invNormal);
     stone = color == W_WHITE ? &ui->wStone : &ui->bStone;
 
-    model[3][0] = ui->theme.gridScale * (col * (1. / (s - 1)) - 0.5);
-    model[3][1] = ui->theme.gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = ui->theme.boardThickness / 2.
-                  + zScale * ui->theme.stoneRadius;
+    model[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
+    model[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
+    model[3][2] = ui->theme->boardThickness / 2.
+                  + zScale * ui->theme->stoneRadius;
     model[2][2] = zScale;
 
     material_use(stone->mat);
@@ -179,9 +179,9 @@ static void render_pointer(struct Interface* ui) {
     load_id4(model);
     load_id3(invNormal);
 
-    model[3][0] = ui->theme.gridScale * (col * (1. / (s - 1)) - 0.5);
-    model[3][1] = ui->theme.gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = ui->theme.boardThickness / 2.;
+    model[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
+    model[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
+    model[3][2] = ui->theme->boardThickness / 2.;
     model[2][2] = 1.;
 
     material_use(ui->pointer.mat);
@@ -204,10 +204,10 @@ static void render_lmvpointer(struct Interface* ui) {
     load_id4(model);
     load_id3(invNormal);
 
-    model[3][0] = ui->theme.gridScale * (col * (1. / (s - 1)) - 0.5);
-    model[3][1] = ui->theme.gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = ui->theme.boardThickness / 2.
-                  + ui->theme.stoneZScale * ui->theme.stoneRadius;
+    model[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
+    model[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
+    model[3][2] = ui->theme->boardThickness / 2.
+                  + ui->theme->stoneZScale * ui->theme->stoneRadius;
     model[2][2] = 1.;
 
     material_use(ui->lmvpointer.mat);
@@ -290,14 +290,14 @@ void* run_interface(void* arg) {
     asset_init(&ui->pointer);
     asset_init(&ui->lmvpointer);
 
-    if (ui->theme.gridScale == 0.) {
+    if (ui->theme->gridScale == 0.) {
         float s = ui->weiqi->boardSize;
-        ui->theme.gridScale = s / (s + 2);
+        ui->theme->gridScale = s / (s + 2);
     }
 
-    ui->theme.stoneRadius = 1. / (2. * (float)(ui->weiqi->boardSize))
-                            * ui->theme.gridScale;
-    ui->theme.pointerSize = ui->theme.stoneRadius / 2.;
+    ui->theme->stoneRadius = 1. / (2. * (float)(ui->weiqi->boardSize))
+                            * ui->theme->gridScale;
+    ui->theme->pointerSize = ui->theme->stoneRadius / 2.;
     /* we're fancy and make a last move pointer that's both a golden rectangle
      * and fits perfectly into a stone
      */
@@ -305,8 +305,8 @@ void* run_interface(void* arg) {
         float phi = (1. + sqrt(5.)) / 2.;
         float l = 0.6;
 
-        ui->theme.lmvph = l * ui->theme.stoneRadius;
-        ui->theme.lmvpw = phi * ui->theme.lmvph; 
+        ui->theme->lmvph = l * ui->theme->stoneRadius;
+        ui->theme->lmvpw = phi * ui->theme->lmvph; 
     }
 
     ui->ok = 0;
@@ -316,15 +316,15 @@ void* run_interface(void* arg) {
         fprintf(stderr, "Error: interface: can't init scene\n");
     } else if (!(bc = board_create(&ui->board,
                                    ui->weiqi->boardSize,
-                                   &ui->theme))) {
+                                   ui->theme))) {
         fprintf(stderr, "Error: interface: can't create board\n");
-    } else if (!(bsc = stone_create(&ui->bStone, 0, &ui->theme))) {
+    } else if (!(bsc = stone_create(&ui->bStone, 0, ui->theme))) {
         fprintf(stderr, "Error: interface: can't create black stone\n");
-    } else if (!(wsc = stone_create(&ui->wStone, 1, &ui->theme))) {
+    } else if (!(wsc = stone_create(&ui->wStone, 1, ui->theme))) {
         fprintf(stderr, "Error: interface: can't create white stone\n");
-    } else if (!(pc = pointer_create(&ui->pointer, &ui->theme))) {
+    } else if (!(pc = pointer_create(&ui->pointer, ui->theme))) {
         fprintf(stderr, "Error: interface: can't create pointer\n");
-    } else if (!(lmpc = lmvpointer_create(&ui->lmvpointer, &ui->theme))) {
+    } else if (!(lmpc = lmvpointer_create(&ui->lmvpointer, ui->theme))) {
         fprintf(stderr, "Error: interface: can't create last move pointer\n");
     } else if (    !(ui->camNode = malloc(sizeof(struct Node)))
                 || !(ui->camOrientation = malloc(sizeof(struct Node)))) {
@@ -374,13 +374,17 @@ void* run_interface(void* arg) {
     pthread_exit(NULL);
 }
 
-int interface_init(struct Interface* ui, struct Weiqi* weiqi) {
+int interface_init(struct Interface* ui,
+                   struct Weiqi* weiqi,
+                   struct InterfaceTheme* theme) {
+    ui->theme = theme;
     ui->viewer = NULL;
     ui->weiqi = weiqi;
     ui->status = W_UI_RUN;
     ui->camNode = NULL;
     ui->camOrientation = NULL;
     ui->cursorPos[0] = 0;
+
     ui->cursorPos[1] = 0;
     ui->selectPos[0] = 0;
     ui->selectPos[1] = 0;
