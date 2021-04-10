@@ -2,6 +2,7 @@
 #define THEME_H
 
 #include <3dmr/math/linear_algebra.h>
+#include <3dmr/light/ibl.h>
 
 enum InterfaceStyle {
     W_UI_PURE,
@@ -17,6 +18,8 @@ struct AssetParams {
 struct InterfaceTheme {
     enum InterfaceStyle style;
     char wood[128];
+    char iblPath[128];
+    struct IBL ibl;
 
     struct AssetParams bStone;
     struct AssetParams wStone;

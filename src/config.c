@@ -11,6 +11,8 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     memset(theme, 0, sizeof(*theme));
     theme->style = W_UI_NICE;
     strcpy(theme->wood, "wood.png");
+    strcpy(theme->iblPath, "sky.hdr");
+    theme->ibl.enabled = 1;
 
     SET_VEC3(theme->bStone.color, 0, 0, 0);
     SET_VEC3(theme->wStone.color, 1, 1, 1);
@@ -240,6 +242,22 @@ static int player_config(struct Config* config, char** cmd) {
     return 1;
 }
 
+static int lighting_config(struct Config* config, char** cmd) {
+    struct InterfaceTheme* theme = &config->theme;
+
+    if (!cmd[0] || !cmd[1]) {
+        fprintf(stderr, "Error: config: lighting needs at least 2 arguments\n");
+        return 0;
+    }
+    if (!strcmp(cmd[0], "ibl")) {
+        strncpy(theme->iblPath, cmd[1], sizeof(theme->iblPath) - 1);
+    } else {
+        fprintf(stderr, "Error: config: unkown option: %s\n", cmd[1]);
+        return 0;
+    }
+    return 1;
+}
+
 int config_load_config(struct Config* config) {
     FILE* f;
     char** cmd;
@@ -278,6 +296,8 @@ int config_load_config(struct Config* config) {
             }
         } else if (!strcmp(cmd[0], "player")) {
             ok = player_config(config, cmd + 1);
+        } else if (!strcmp(cmd[0], "lighting")) {
+            ok = lighting_config(config, cmd + 1);
         } else {
             fprintf(stderr, "Warning: config: ignoring unknown command: %s\n",
                     cmd[0]);

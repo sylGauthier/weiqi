@@ -9,6 +9,7 @@
 
 #include <3dmr/render/camera_buffer_object.h>
 #include <3dmr/render/lights_buffer_object.h>
+#include <3dmr/skybox.h>
 
 #include "interface.h"
 #include "utils.h"
@@ -238,13 +239,42 @@ static void render_board(struct Interface* ui) {
     render_pointer(ui);
 }
 
-static void setup_lighting(struct Scene* scene) {
-    struct DirectionalLight l = {SUN_DIRECTION, SUN_COLOR};
-    struct AmbientLight a = {AMBIENT_COLOR};
-    lights_buffer_object_update_dlight(&scene->lights, &l, 0);
-    lights_buffer_object_update_ndlight(&scene->lights, 1);
-    lights_buffer_object_update_ambient(&scene->lights, &a);
-    uniform_buffer_send(&scene->lights);
+static char* strmerge(const char* s1, const char* s2) {
+    char* res;
+    if (       strlen(s1) < (size_t)(-1) / 2 && strlen(s2) < (size_t)(-1) / 2
+            && (res = malloc(strlen(s1) + strlen(s2) + 1))) {
+        strcpy(res, s1);
+        strcpy(res + strlen(s1), s2);
+    }
+    return res;
+}
+
+static int setup_lighting(struct Scene* scene, struct InterfaceTheme* theme) {
+    if (theme->style == W_UI_NICE && theme->ibl.enabled) {
+        GLuint tex;
+        char *path1 = NULL, *path2 = NULL, ok = 0;
+
+        if (       !(path1 = strmerge(W_DATA_DIR"/textures/", theme->iblPath))
+                || !(path2 = strmerge(W_DATA_SRC"/textures/", theme->iblPath))) {
+            fprintf(stderr, "Error: lighting: can't merge strings\n");
+        } else if (!(tex = skybox_load_texture_hdr_equirect(path1, 1024))
+                && !(tex = skybox_load_texture_hdr_equirect(path2, 1024))) {
+            fprintf(stderr, "Error: lighting: can't load IBL texture\n");
+        } else {
+            ok = compute_ibl(tex, 32, 1024, 5, 256, &theme->ibl);
+        }
+        free(path1);
+        free(path2);
+        return ok;
+    } else {
+        struct DirectionalLight l = {SUN_DIRECTION, SUN_COLOR};
+        struct AmbientLight a = {AMBIENT_COLOR};
+        lights_buffer_object_update_dlight(&scene->lights, &l, 0);
+        lights_buffer_object_update_ndlight(&scene->lights, 1);
+        lights_buffer_object_update_ambient(&scene->lights, &a);
+        uniform_buffer_send(&scene->lights);
+    }
+    return 1;
 }
 
 static void set_title(struct Interface* ui) {
@@ -314,6 +344,8 @@ void* run_interface(void* arg) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
     } else if (!(sceneInit = scene_init(&ui->scene, &ui->camera))) {
         fprintf(stderr, "Error: interface: can't init scene\n");
+    } else if (!setup_lighting(&ui->scene, ui->theme)) {
+        fprintf(stderr, "Error: interface: can't setup lighting\n");
     } else if (!(bc = board_create(&ui->board,
                                    ui->weiqi->boardSize,
                                    ui->theme))) {
@@ -346,7 +378,6 @@ void* run_interface(void* arg) {
             node_add_child(ui->camOrientation, ui->camNode);
             node_translate(ui->camNode, t);
         }
-        setup_lighting(&ui->scene);
 
         ui->ok = 1;
         while (ui->status != W_UI_QUIT) {

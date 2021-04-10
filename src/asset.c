@@ -56,7 +56,8 @@ static int solid_asset(struct Asset3D* asset, enum MeshFlags flags,
 }
 
 static int pbr_asset(struct Asset3D* asset, enum MeshFlags flags,
-                     Vec3 color, float metal, float rough) {
+                     Vec3 color, float metal, float rough,
+                     struct IBL* ibl) {
     int ok = 0;
     if (!(asset->pbrParams = pbr_material_params_new())) {
         fprintf(stderr, "Error: interface: can't create pbr params\n");
@@ -64,6 +65,7 @@ static int pbr_asset(struct Asset3D* asset, enum MeshFlags flags,
         material_param_set_vec3_constant(&asset->pbrParams->albedo, color);
         material_param_set_float_constant(&asset->pbrParams->metalness, metal);
         material_param_set_float_constant(&asset->pbrParams->roughness, rough);
+        if (ibl->enabled) asset->pbrParams->ibl = ibl;
         asset->mat = pbr_material_new(flags, asset->pbrParams);
         ok = !!asset->mat;
     }
@@ -75,7 +77,8 @@ static int pbr_asset(struct Asset3D* asset, enum MeshFlags flags,
 }
 
 static int pbr_asset_tex(struct Asset3D* asset, enum MeshFlags flags,
-                         GLuint tex, float metal, float rough) {
+                         GLuint tex, float metal, float rough,
+                         struct IBL* ibl) {
     int ok = 0;
     if (!(asset->pbrParams = pbr_material_params_new())) {
         fprintf(stderr, "Error: interface: can't create pbr params\n");
@@ -83,6 +86,7 @@ static int pbr_asset_tex(struct Asset3D* asset, enum MeshFlags flags,
         material_param_set_vec3_texture(&asset->pbrParams->albedo, tex);
         material_param_set_float_constant(&asset->pbrParams->metalness, metal);
         material_param_set_float_constant(&asset->pbrParams->roughness, rough);
+        if (ibl->enabled) asset->pbrParams->ibl = ibl;
         asset->mat = pbr_material_new(flags, asset->pbrParams);
         ok = !!asset->mat;
     }
@@ -111,7 +115,7 @@ int stone_create(struct Asset3D* stone, char white,
             case W_UI_NICE:
                 ok = pbr_asset(stone, s.flags,
                                params->color, params->metalness,
-                               params->roughness);
+                               params->roughness, &theme->ibl);
                 break;
             default:
                 ok = solid_asset(stone, s.flags, params->color);
@@ -145,7 +149,8 @@ int board_create(struct Asset3D* board, unsigned int size,
             case W_UI_NICE:
                 ok = pbr_asset_tex(board, box.flags, tex,
                                    theme->board.metalness,
-                                   theme->board.roughness);
+                                   theme->board.roughness,
+                                   &theme->ibl);
                 break;
             default:
                 ok = solid_asset_tex(board, box.flags, tex);
