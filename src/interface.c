@@ -68,7 +68,8 @@ void key_callback(struct Viewer* viewer, int key, int scancode, int action,
         case GLFW_KEY_HOME:
             {
                 Quaternion q;
-                quaternion_load_id(q);
+                Vec3 axisX = {1, 0, 0};
+                quaternion_set_axis_angle(q, axisX, -M_PI / 2.);
                 node_set_orientation(interface->camOrientation, q);
             }
         default:
@@ -77,8 +78,30 @@ void key_callback(struct Viewer* viewer, int key, int scancode, int action,
     return;
 }
 
+static int intersectlp(Vec3 dest, Vec3 p, Vec3 v, Vec4 plane) {
+    float d1, d2, t;
+
+    d1 = dot3(v, plane);
+    d2 = dot3(p, plane);
+    if (d1 == 0.) { /* if line and plane parallel... */
+        if (d2 + plane[3] == 0.) { /* if base point belongs to plane... */
+            /* then the line is included in the plane, so the base point is a 
+             * valid solution */
+            memcpy(dest, p, sizeof(Vec3));
+            return 1;
+        }
+        /* else no intersection */
+        return 0;
+    }
+    t = -d2 / (d1 + plane[3]);
+    dest[0] = p[0] + t * v[0];
+    dest[1] = p[1] + t * v[1];
+    dest[2] = p[2] + t * v[2];
+    return 1;
+}
+
 static int update_cursor_pos(struct Interface* ui, double x, double y) {
-    Vec4 v = {0, 0, -1, 1}, res;
+    Vec4 v = {0, 0, -1, 1}, res, plane = {0, 1, 0, 0};
     Vec3 vec, pos, boardPos;
     Mat4 invView;
     float h = ui->theme->boardThickness / 2;
@@ -97,19 +120,15 @@ static int update_cursor_pos(struct Interface* ui, double x, double y) {
     vec[1] = res[1] - pos[1];
     vec[2] = res[2] - pos[2];
 
-    if (vec[2] == 0.) return 0;
-    if (vec[0] == 0.) boardPos[0] = res[0];
-    else boardPos[0] = vec[0] * (h - pos[2]) / vec[2] + pos[0];
-    if (vec[1] == 0.) boardPos[1] = res[1];
-    else boardPos[1] = vec[1] * (h - pos[2]) / vec[2] + pos[1];
-    boardPos[2] = h;
+    plane[3] = -h;
+    if (!intersectlp(boardPos, pos, vec, plane)) return 0;
 
     boardPos[0] = boardPos[0] / ui->theme->gridScale + 0.5;
-    boardPos[1] = boardPos[1] / ui->theme->gridScale + 0.5;
+    boardPos[2] = -boardPos[2] / ui->theme->gridScale + 0.5;
     if (       boardPos[0] >= 0. && boardPos[0] <= 1.
-            && boardPos[1] >= 0. && boardPos[1] <= 1.) {
+            && boardPos[2] >= 0. && boardPos[2] <= 1.) {
         ui->cursorPos[0] = (boardPos[0] + 1. / (2. * (float) s)) * s;
-        ui->cursorPos[1] = (boardPos[1] + 1. / (2. * (float) s)) * s;
+        ui->cursorPos[1] = (boardPos[2] + 1. / (2. * (float) s)) * s;
     }
     return 1;
 }
@@ -129,13 +148,13 @@ void cursor_callback(struct Viewer* viewer, double xpos, double ypos,
                      double dx, double dy, int bl, int bm, int br,
                      void* data) {
     struct Interface* ui = data;
-    Vec3 axisZ = {0, 0, 1};
+    Vec3 axisY = {0, 1, 0};
     Vec3 axisX = {1, 0, 0};
 
     update_cursor_pos(ui, 2 * xpos / viewer->width - 1,
                       1. - 2 * ypos / viewer->height);
     if (br) {
-        node_rotate(ui->camOrientation, axisZ, -dx / viewer->width);
+        node_rotate(ui->camOrientation, axisY, -dx / viewer->width);
         node_slew(ui->camOrientation, axisX, -dy / viewer->width);
     }
     return;
@@ -153,7 +172,7 @@ static void render_stone(struct Interface* ui, enum WeiqiColor color,
     Mat4 model;
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
-    float zScale = ui->theme->stoneZScale;
+    float yScale = ui->theme->stoneYScale;
     struct Asset3D* stone;
 
     load_id4(model);
@@ -161,10 +180,10 @@ static void render_stone(struct Interface* ui, enum WeiqiColor color,
     stone = color == W_WHITE ? &ui->wStone : &ui->bStone;
 
     model[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
-    model[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = ui->theme->boardThickness / 2.
-                  + zScale * ui->theme->stoneRadius;
-    model[2][2] = zScale;
+    model[3][1] = ui->theme->boardThickness / 2.
+                    + yScale * ui->theme->stoneRadius;
+    model[3][2] =  -ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
+    model[1][1] = yScale;
 
     material_use(stone->mat);
     material_set_matrices(stone->mat, model, invNormal);
@@ -181,8 +200,8 @@ static void render_pointer(struct Interface* ui) {
     load_id3(invNormal);
 
     model[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
-    model[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = ui->theme->boardThickness / 2.;
+    model[3][1] = ui->theme->boardThickness / 2.;
+    model[3][2] = -ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
     model[2][2] = 1.;
 
     material_use(ui->pointer.mat);
@@ -206,9 +225,9 @@ static void render_lmvpointer(struct Interface* ui) {
     load_id3(invNormal);
 
     model[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
-    model[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
-    model[3][2] = ui->theme->boardThickness / 2.
-                  + ui->theme->stoneZScale * ui->theme->stoneRadius;
+    model[3][1] = ui->theme->boardThickness / 2.
+                  + ui->theme->stoneYScale * ui->theme->stoneRadius;
+    model[3][2] = -ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
     model[2][2] = 1.;
 
     material_use(ui->lmvpointer.mat);
@@ -218,11 +237,15 @@ static void render_lmvpointer(struct Interface* ui) {
 
 static void render_board(struct Interface* ui) {
     Mat4 model;
-    Mat3 invNormal;
+    Mat3 invNormal, tmp;
     unsigned char row, col, s;
+    Vec3 axis = {1, 0, 0};
 
-    load_id4(model);
-    load_id3(invNormal);
+    load_rot4(model, axis, -M_PI / 2);
+    mat4to3(tmp, MAT_CONST_CAST(model));
+    invert3m(invNormal, MAT_CONST_CAST(tmp));
+    transpose3m(invNormal);
+
     material_use(ui->board.mat);
     material_set_matrices(ui->board.mat, model, invNormal);
     vertex_array_render(ui->board.va);
@@ -371,12 +394,14 @@ void* run_interface(void* arg) {
 
         {
             Vec3 t = {0, 0, 2};
+            Vec3 axis = {1, 0, 0};
             node_init(ui->camOrientation);
             node_init(ui->camNode);
             node_set_camera(ui->camNode, &ui->camera);
             node_add_child(&ui->scene.root, ui->camOrientation);
             node_add_child(ui->camOrientation, ui->camNode);
             node_translate(ui->camNode, t);
+            node_rotate(ui->camOrientation, axis, -M_PI / 2);
         }
 
         ui->ok = 1;

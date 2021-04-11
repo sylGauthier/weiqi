@@ -29,7 +29,7 @@ static void load_default_theme(struct InterfaceTheme* theme) {
 
     theme->boardThickness = 0.01;
     theme->gridScale = 0.;
-    theme->stoneZScale = 0.3;
+    theme->stoneYScale = 0.3;
     theme->pointerSize = 0.01;
 
     theme->coordinates = 0;

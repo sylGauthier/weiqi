@@ -28,7 +28,7 @@ struct InterfaceTheme {
     struct AssetParams lmvp;
 
     float boardThickness, gridScale;
-    float stoneRadius, stoneZScale;
+    float stoneRadius, stoneYScale;
     float pointerSize;
 
     /* width and height of last move pointer */
