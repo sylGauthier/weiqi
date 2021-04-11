@@ -30,6 +30,7 @@ struct InterfaceTheme {
     float boardThickness, gridScale;
     float stoneRadius, stoneYScale;
     float pointerSize;
+    float fov;
 
     /* width and height of last move pointer */
     float lmvpw, lmvph;

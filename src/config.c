@@ -31,6 +31,7 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     theme->gridScale = 0.;
     theme->stoneYScale = 0.3;
     theme->pointerSize = 0.01;
+    theme->fov = 60;
 
     theme->coordinates = 0;
     strcpy(theme->font, "font.ttf");

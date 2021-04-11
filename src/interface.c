@@ -335,8 +335,12 @@ void* run_interface(void* arg) {
     struct Interface* ui = arg;
     int sceneInit = 0, bc = 0, bsc = 0, wsc = 0, pc = 0, lmpc = 0;
 
-    camera_projection(1., 30 / 360. * 2 * M_PI, 0.001, 1000.,
-                      ui->camera.projection);
+    if (ui->theme->fov == 0.) {
+        camera_ortho_projection(1., 1., 0.1, 1000., ui->camera.projection);
+    } else {
+        camera_projection(1., ui->theme->fov / 360. * 2 * M_PI, 0.001, 1000.,
+                          ui->camera.projection);
+    }
     asset_init(&ui->board);
     asset_init(&ui->wStone);
     asset_init(&ui->bStone);
@@ -393,7 +397,7 @@ void* run_interface(void* arg) {
         ui->viewer->close_callback = close_callback;
 
         {
-            Vec3 t = {0, 0, 2};
+            Vec3 t = {0, 0, 1};
             Vec3 axis = {1, 0, 0};
             node_init(ui->camOrientation);
             node_init(ui->camNode);
