@@ -68,14 +68,11 @@ static void render_lmvpointer(struct Interface* ui) {
 
 static void render_board(struct Interface* ui) {
     Mat4 model;
-    Mat3 invNormal, tmp;
+    Mat3 invNormal;
     unsigned char row, col, s;
-    Vec3 axis = {1, 0, 0};
 
-    load_rot4(model, axis, -M_PI / 2);
-    mat4to3(tmp, MAT_CONST_CAST(model));
-    invert3m(invNormal, MAT_CONST_CAST(tmp));
-    transpose3m(invNormal);
+    load_id4(model);
+    load_id3(invNormal);
 
     material_use(ui->board.mat);
     material_set_matrices(ui->board.mat, model, invNormal);

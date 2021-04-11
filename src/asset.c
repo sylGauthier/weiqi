@@ -135,7 +135,7 @@ int board_create(struct Asset3D* board, unsigned int size,
     GLuint tex;
     int ok = 0;
 
-    if (!make_box(&box, 1., 1., theme->boardThickness)) {
+    if (!make_box(&box, 1., theme->boardThickness, 1.)) {
         fprintf(stderr, "Error: interface: can't create box\n");
     } else if (!(board->va = vertex_array_new(&box))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
