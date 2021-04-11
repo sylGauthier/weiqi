@@ -51,5 +51,4 @@ void interface_wait(struct Interface* ui);
 int interface_get_move(struct Interface* ui,
                        enum WeiqiColor color, enum MoveAction* action,
                        unsigned char* row, unsigned char* col);
-
 #endif
