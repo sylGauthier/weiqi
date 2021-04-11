@@ -300,6 +300,28 @@ static int setup_lighting(struct Scene* scene, struct InterfaceTheme* theme) {
     return 1;
 }
 
+static int setup_camera(struct Interface* ui) {
+    Vec3 t = {0, 0, 0};
+    Vec3 axis = {1, 0, 0};
+
+    node_init(ui->camOrientation);
+    node_init(ui->camNode);
+    node_set_camera(ui->camNode, &ui->camera);
+    if (       !node_add_child(&ui->scene.root, ui->camOrientation)
+            || !node_add_child(ui->camOrientation, ui->camNode)) {
+        return 0;
+    }
+    if (ui->theme->fov > 0.0) {
+        float tanFOV = tan(ui->theme->fov / 360. * M_PI);
+        t[2] = (0.5 / tanFOV + ui->theme->boardThickness / 2.);
+    } else {
+        t[2] = 1;
+    }
+    node_translate(ui->camNode, t);
+    node_rotate(ui->camOrientation, axis, -M_PI / 2);
+    return 1;
+}
+
 static void set_title(struct Interface* ui) {
     char title[256] = "", last[64] = "";
     char* status;
@@ -388,6 +410,8 @@ void* run_interface(void* arg) {
     } else if (    !(ui->camNode = malloc(sizeof(struct Node)))
                 || !(ui->camOrientation = malloc(sizeof(struct Node)))) {
         fprintf(stderr, "Error: interface: can't create cam node\n");
+    } else if (!setup_camera(ui)) {
+        fprintf(stderr, "Error: interface: can't setup camera\n");
     } else {
         ui->viewer->callbackData = ui;
         ui->viewer->resize_callback = resize_callback;
@@ -395,18 +419,6 @@ void* run_interface(void* arg) {
         ui->viewer->cursor_callback = cursor_callback;
         ui->viewer->mouse_callback = mouse_callback;
         ui->viewer->close_callback = close_callback;
-
-        {
-            Vec3 t = {0, 0, 1};
-            Vec3 axis = {1, 0, 0};
-            node_init(ui->camOrientation);
-            node_init(ui->camNode);
-            node_set_camera(ui->camNode, &ui->camera);
-            node_add_child(&ui->scene.root, ui->camOrientation);
-            node_add_child(ui->camOrientation, ui->camNode);
-            node_translate(ui->camNode, t);
-            node_rotate(ui->camOrientation, axis, -M_PI / 2);
-        }
 
         ui->ok = 1;
         while (ui->status != W_UI_QUIT) {
