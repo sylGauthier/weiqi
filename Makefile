@@ -17,7 +17,7 @@ LDFLAGS += $(shell pkg-config --libs $(DEPS)) -lm -lpthread
 CFLAGS += -DW_DATA_DIR=\"$(DATA_DIR)\" -DW_DATA_SRC=\"$(DATA_SRC)\"
 
 OBJECTS := $(patsubst %.c,%.o,$(wildcard src/*.c))
-TEXTURES := wood.png wood2.png wood3.png
+TEXTURES := wood.png wood2.png wood3.png sky.hdr
 TEXFILES := $(addprefix $(TEXTURE_SRC)/, $(TEXTURES))
 FONTFILES := $(DATA_SRC)/font.ttf
 
@@ -30,9 +30,9 @@ weiqi: $(OBJECTS)
 clean:
 	rm -rf $(OBJECTS) weiqi
 
-$(TEXTURE_SRC)/%.png:
+$(TEXTURE_SRC)/%:
 	test -d $(TEXTURE_SRC) || mkdir -p $(TEXTURE_SRC)
-	curl "https://pedantic.software/syg/files/weiqi/data/$*.png" > $@
+	curl "https://pedantic.software/syg/files/weiqi/data/$*" > $@
 
 $(DATA_SRC)/%.ttf:
 	test -d $(DATA_SRC) || mkdir -p $(DATA_SRC)
