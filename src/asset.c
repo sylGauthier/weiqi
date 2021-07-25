@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include <3dmr/mesh/box.h>
-#include <3dmr/mesh/uvsphere.h>
+#include <3dmr/mesh/icosphere.h>
 
 #include "asset.h"
 
@@ -103,7 +103,7 @@ int stone_create(struct Asset3D* stone, char white,
     int ok = 0;
     struct AssetParams* params = white ? &theme->wStone : &theme->bStone;
 
-    if (!make_uvsphere(&s, theme->stoneRadius, 16, 16)) {
+    if (!make_icosphere(&s, theme->stoneRadius, 4)) {
         fprintf(stderr, "Error: interface: can't create sphere\n");
     } else if (!(stone->va = vertex_array_new(&s))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
