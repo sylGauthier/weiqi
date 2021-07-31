@@ -299,6 +299,14 @@ int config_load_config(struct Config* config) {
             ok = player_config(config, cmd + 1);
         } else if (!strcmp(cmd[0], "lighting")) {
             ok = lighting_config(config, cmd + 1);
+        } else if (!strcmp(cmd[0], "fov")) {
+            if (cmd[1]) {
+                config->theme.fov = strtol(cmd[1], NULL, 10);
+                ok = 1;
+            } else {
+                fprintf(stderr, "Error: config: 'fov' needs 1 argument\n");
+                ok = 0;
+            }
         } else {
             fprintf(stderr, "Warning: config: ignoring unknown command: %s\n",
                     cmd[0]);
@@ -390,6 +398,13 @@ int config_parse_args(struct Config* config, unsigned int argc, char** argv) {
                 print_help(argv[0]);
                 return 0;
             }
+            i++;
+        } else if (!strcmp(arg, "-f") || !strcmp(arg, "--fov")) {
+            if (i == argc - 1) {
+                print_help(argv[0]);
+                return 0;
+            }
+            config->theme.fov = strtol(argv[i + 1], NULL, 10);
             i++;
         } else if (!strcmp(arg, "--texture")) {
             if (i == argc - 1) {
