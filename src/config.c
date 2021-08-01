@@ -14,6 +14,7 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     strcpy(theme->iblPath, "sky.hdr");
     theme->ibl.enabled = 1;
 
+    SET_VEC3(theme->backgroundColor, 0.3, 0.3, 0.3);
     SET_VEC3(theme->bStone.color, 0, 0, 0);
     SET_VEC3(theme->wStone.color, 1, 1, 1);
     SET_VEC3(theme->pointer.color, 0, 0, 0);
@@ -282,6 +283,15 @@ static int interface_config(struct Config* config, char** cmd) {
         }
     } else if (!strcmp(cmd[0], "fov")) {
         config->theme.fov = strtof(cmd[1], NULL);
+    } else if (!strcmp(cmd[0], "background")) {
+        if (!cmd[1] || !cmd[2] || !cmd[3]) {
+            fprintf(stderr, "Error: config: interface: "
+                            "background needs 3 arguments\n");
+            return 0;
+        }
+        config->theme.backgroundColor[0] = strtof(cmd[1], NULL);
+        config->theme.backgroundColor[1] = strtof(cmd[2], NULL);
+        config->theme.backgroundColor[2] = strtof(cmd[3], NULL);
     } else {
         fprintf(stderr, "Error: config: interface: unknown command: %s\n",
                         cmd[0]);

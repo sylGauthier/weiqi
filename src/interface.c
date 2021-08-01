@@ -273,6 +273,10 @@ void* run_interface(void* arg) {
         ui->viewer->close_callback = close_callback;
 
         ui->ok = 1;
+        glClearColor(ui->theme->backgroundColor[0],
+                     ui->theme->backgroundColor[1],
+                     ui->theme->backgroundColor[2],
+                     0);
         while (ui->status != W_UI_QUIT) {
             viewer_process_events(ui->viewer);
             scene_update_nodes(&ui->scene, update_node, NULL);

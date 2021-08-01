@@ -20,6 +20,7 @@ struct InterfaceTheme {
     char wood[128];
     char iblPath[128];
     struct IBL ibl;
+    Vec3 backgroundColor;
 
     struct AssetParams bStone;
     struct AssetParams wStone;
