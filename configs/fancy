@@ -1,0 +1,15 @@
+engine gnugo            "/usr/bin/gnugo --mode gtp --chinese-rules"
+
+stone black color       0.03    0.03    0.03
+stone black roughness   0.6
+
+stone white color       0.8     0.8     0.8
+stone white roughness   0.45
+
+board texture           wood.png
+board color             0.3     0.2     0.1
+board roughness         0.3
+
+lighting ibl            sky.hdr
+
+player random           human gnugo
