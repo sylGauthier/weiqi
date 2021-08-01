@@ -134,10 +134,14 @@ int board_create(struct Asset3D* board, unsigned int size,
     struct Mesh box;
     GLuint tex;
     int ok = 0;
+    Vec3 axis = {1, 0, 0};
 
     if (!make_box(&box, 1., theme->boardThickness, 1.)) {
         fprintf(stderr, "Error: interface: can't create box\n");
-    } else if (!(board->va = vertex_array_new(&box))) {
+    } else if ( mesh_rotate(&box, axis, M_PI), /* HACK:we have to flip the board
+                                                  so that the texture is not
+                                                  reversed */
+                !(board->va = vertex_array_new(&box))) {
         fprintf(stderr, "Error: interface: can't create vertex array\n");
     } else if (!(tex = grid_gen(size, theme))) {
         fprintf(stderr, "Error: interface: can't create grid\n");
