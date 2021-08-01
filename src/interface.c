@@ -15,9 +15,9 @@
 #include "callbacks.h"
 #include "utils.h"
 
-#define SUN_DIRECTION   {-0.3, 0, -1}
+#define SUN_DIRECTION   {-0.4, -1, 0.1}
 #define SUN_COLOR       {0.8, 0.8, 0.8}
-#define AMBIENT_COLOR   {5, 5, 5}
+#define AMBIENT_COLOR   {9, 9, 9}
 
 static void render_stone(struct Interface* ui, enum WeiqiColor color,
                          unsigned char row, unsigned char col) {
