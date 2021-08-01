@@ -17,22 +17,23 @@ weiqi \- a 3D Go board and GTP client
 
 .SH DESCRIPTION
 .B weiqi
-is a simple 3D Go board to play go against GTP engines. The 3D look is highly
-customisable, and it relies heavily on the command line. All parameters of the
-game are set with the command arguments.
+is a simple 3D Go board to play go against GTP engines with a higly
+customisable interface.
 
 .SH OPTIONS
 A
 .I player
 is one of
-.IR human " or " \fR<\fPengine_name\fR>\fP
+.IR human " or " \fR<\fPengine_name\fR>\fP " or " socket:\fR<\fPpath\fR>\fP
 where
 .I engine_name
-is a GTP go engine defined in the configuration file. See
+is a GTP go engine defined in the configuration file and
+.I socket path
+is a path to a UNIX domain socket. See
 .I CONFIG
 for more information on how to declare an engine.
 .I human
-is a player whose moves are registered from the 3D interface.
+is a player whose moves are registered from the graphical interface.
 .B weiqi
 accepts any combination of those players, including human versus human, engine
 versus engine, etc.
@@ -65,12 +66,6 @@ can vary, but anything between 7 and 19 is usually fine).
 Sets the number of handicap stones.
 
 .TP
-.BI "\-l\fR/\fP\-\-load " game_file
-Loads the specified game file. See
-.IR USAGE
-for more information on saving/loading games.
-
-.TP
 .BI "\-i\fR/\fP\-\-interface " pure\fR|\fPnice
 Interface mode.
 .I pure
@@ -78,6 +73,11 @@ is minimal, uses a solid shader, no lighting, no reflection.
 .I nice
 looks more realistic, uses a modern PBR (physic based rendering) shader,
 supports lighting, roughness, metalness.
+
+.TP
+.BI "\-f\fR/\fP\-\-fov " fov
+Sets the camera field of view in degrees. You can set 0 for an orthographic
+projection.
 
 .TP
 .BI "\-\-texture " texture_name\fR|\fPnone
@@ -98,6 +98,14 @@ are floats between 0 and 1.
 .TP
 .BI "\-\-coordinates"
 Display coordinates on the board using letters and numbers.
+
+.TP
+.BI "\-\-client " "\fR<\fPplayer\fR>\fP socket:\fR<\fPpath\fR>\fP"
+Runs weiqi in client mode. weiqi will connect to the specified UNIX domain
+socket and query the server (most likely an other instance of weiqi running in
+server mode) for all game parameters through the GTP protocol. weiqi will then
+essentially behave like a GTP engine with whatever player is specified as the
+backend.
 
 .SH CONFIG
 .B weiqi
@@ -147,6 +155,24 @@ option.
 .BI "player " "random human\fR|<\fPengine_name\fR>\fP human\fR|<\fPengine_name\fR>\fP"
 Randomly assigns the two specified players to white and black.
 
+.TP
+.BI "lighting " "ibl none\fR|<\fPIBL file\fR>\fP"
+Sets IBL (image based lighting) file (for now there is only "sky.hdr" available
+but you can add more in the textures folder).
+.B none
+disables IBL. Note that IBL requires a fair bit of resources and will most
+likely be slow on older hardware.
+
+.TP
+.BI "interface " "shading pbr\fR|\fPsolid"
+Sets the shading mode. pbr (physic based rendering) is the one used in the
+"nice" mode, solid is the basic and resource friendly one.
+
+.TP
+.BI "interface " "fov \fR<\fPfov\fR>\fP"
+Sets the field of view. 0 means orthographic projection, which is what you want
+if you want a 2D-looking board.
+
 .SH USAGE
 .TP
 .B Starting a game
@@ -165,19 +191,6 @@ to reset the orientation. Useful information such as the white stones captures
 (W), the black stones captured (B), the last move and the game status are
 displayed in the window's title bar.
 
-.TP
-.B Saving/loading a game
-.B weiqi
-outputs all of the game configuration and history as it is played, in the same
-format as is expected when loading a file. Which means that to save a game,
-simply redirect
-.I stdout
-to the game file, or copy paste the output of
-.B weiqi
-into the file. You can then call
-.B "weiqi -l"
-on the file to load it back.
-
 .SH EXAMPLES
 .TP
 Default mode on a 9x9 board:
@@ -194,6 +207,14 @@ Gnugo vs human, random assignation, 19x19 board:
 .TP
 Gnugo vs human on a 19x19 board with pure interface, no texture and grey board:
 .B weiqi -b gnugo -w human -i pure --texture none --color 0.5 0.5 0.5
+
+.TP
+Start a server listening on a UNIX domain socket with a random color assignment:
+.B weiqi -r human socket:/tmp/weiqiconn
+
+.TP
+Start a client connecting to the previous server and a human backend:
+.B weiqi --client human /tmp/weiqiconn
 
 .SH FILES
 .TP
