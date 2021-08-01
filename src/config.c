@@ -11,8 +11,7 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     memset(theme, 0, sizeof(*theme));
     theme->style = W_UI_NICE;
     strcpy(theme->wood, "wood.png");
-    strcpy(theme->iblPath, "sky.hdr");
-    theme->ibl.enabled = 1;
+    theme->ibl.enabled = 0;
 
     SET_VEC3(theme->backgroundColor, 0.3, 0.3, 0.3);
     SET_VEC3(theme->bStone.color, 0, 0, 0);
@@ -256,6 +255,7 @@ static int lighting_config(struct Config* config, char** cmd) {
             theme->ibl.enabled = 0;
         } else {
             strncpy(theme->iblPath, cmd[1], sizeof(theme->iblPath) - 1);
+            theme->ibl.enabled = 1;
         }
     } else {
         fprintf(stderr, "Error: config: unkown option: %s\n", cmd[1]);
