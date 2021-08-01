@@ -177,6 +177,8 @@ int game_client_run(struct GameClient* client) {
     char** cmd;
     int ok = 1;
 
+    if (!client->player.reset(&client->player)) return 0;
+
     while (ok && client->ui->status != W_UI_QUIT
               && (cmd = cmd_get(client->in))) {
         if (!strcmp(cmd[0], "play")) {

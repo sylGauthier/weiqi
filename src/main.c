@@ -13,13 +13,18 @@ int main(int argc, char** argv) {
     if (       config_load_defaults(&config)
             && (confinit = config_load_config(&config))
             && config_parse_args(&config, argc, argv)
-            && (wqinit = weiqi_init(&weiqi, config.boardSize, config.handicap))
-            && (uiinit = interface_init(&ui, &weiqi, &config.theme))) {
+            && (wqinit = weiqi_init(&weiqi,
+                                    config.boardSize,
+                                    config.handicap))) {
         if (config.mode == WQ_SERVER) {
             struct GameServer srv;
 
             if (!game_server_init(&srv, &ui, &weiqi, &config)) {
                 fprintf(stderr, "Error: failed to start game server\n");
+                ok = 0;
+                goto exit;
+            } else if (!(uiinit = interface_init(&ui, &weiqi, &config.theme))) {
+                fprintf(stderr, "Error: failed to start interface\n");
                 ok = 0;
                 goto exit;
             }
@@ -28,8 +33,15 @@ int main(int argc, char** argv) {
         } else if (config.mode == WQ_CLIENT) {
             struct GameClient client;
 
+            /* client_init will query critical informations such as board size
+             * from the server so it must be called *before* interface_init
+             */
             if (!game_client_init(&client, &ui, &weiqi, &config)) {
                 fprintf(stderr, "Error: failed to start game client\n");
+                ok = 0;
+                goto exit;
+            } else if (!(uiinit = interface_init(&ui, &weiqi, &config.theme))) {
+                fprintf(stderr, "Error: failed to start interface\n");
                 ok = 0;
                 goto exit;
             }
