@@ -58,9 +58,13 @@ void key_callback(struct Viewer* viewer, int key, int scancode, int action,
         case GLFW_KEY_HOME:
             {
                 Quaternion q;
+                Vec3 t = {0, 0, 0};
                 Vec3 axisX = {1, 0, 0};
                 quaternion_set_axis_angle(q, axisX, -M_PI / 2.);
                 node_set_orientation(interface->camOrientation, q);
+
+                t[2] = interface->defCamDist;
+                node_set_pos(interface->camNode, t);
             }
         default:
             break;
@@ -148,6 +152,18 @@ void cursor_callback(struct Viewer* viewer, double xpos, double ypos,
         node_slew(ui->camOrientation, axisX, -dy / viewer->width);
     }
     return;
+}
+
+void wheel_callback(struct Viewer* viewer, double dx, double dy, void* data) {
+    struct Interface* ui = data;
+    Vec3 t = {0, 0, 0};
+
+    if (dy < 0) {
+        t[2] = ui->camNode->position[2] * (1 - dy / 10.);
+    } else {
+        t[2] = ui->camNode->position[2] / (1 + dy / 10.);
+    }
+    node_set_pos(ui->camNode, t);
 }
 
 void close_callback(struct Viewer* viewer, void* data) {

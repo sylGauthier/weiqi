@@ -12,6 +12,7 @@ void mouse_callback(struct Viewer* viewer, int button, int action, int mods,
 void cursor_callback(struct Viewer* viewer, double xpos, double ypos,
                      double dx, double dy, int bl, int bm, int br,
                      void* data);
+void wheel_callback(struct Viewer* viewer, double dx, double dy, void* data);
 void close_callback(struct Viewer* viewer, void* data);
 
 #endif

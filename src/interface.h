@@ -20,6 +20,7 @@ struct Interface {
     struct Camera camera;
     struct Node* camNode;
     struct Node* camOrientation;
+    float defCamDist;
 
     struct Asset3D board;
     struct Asset3D wStone;

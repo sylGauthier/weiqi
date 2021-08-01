@@ -169,6 +169,7 @@ static int setup_camera(struct Interface* ui) {
     } else {
         t[2] = 1;
     }
+    ui->defCamDist = t[2];
     node_translate(ui->camNode, t);
     node_rotate(ui->camOrientation, axis, -M_PI / 2);
     return 1;
@@ -270,6 +271,7 @@ void* run_interface(void* arg) {
         ui->viewer->key_callback = key_callback;
         ui->viewer->cursor_callback = cursor_callback;
         ui->viewer->mouse_callback = mouse_callback;
+        ui->viewer->wheel_callback = wheel_callback;
         ui->viewer->close_callback = close_callback;
 
         ui->ok = 1;
