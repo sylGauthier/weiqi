@@ -1,6 +1,7 @@
+include config.mk
+
 DEPS := 3dmr
 
-PREFIX ?= /usr
 DIR=$(if $(DESTDIR),$(DESTDIR)/)$(PREFIX)
 BIN_DIR=$(DIR)/$(or $(BINDIR),bin)
 MAN_DIR=$(DIR)/share/man/man1
@@ -10,11 +11,11 @@ TEXTURE_DIR=$(DATA_DIR)/textures
 DATA_SRC=data
 TEXTURE_SRC=$(DATA_SRC)/textures
 
-CFLAGS ?= -std=c89 -pedantic -march=native -Wall -O2 -D_POSIX_C_SOURCE=200112L
 CFLAGS += $(shell pkg-config --cflags $(DEPS)) -I.
 LDFLAGS += $(shell pkg-config --libs $(DEPS)) -lm -lpthread
 
 CFLAGS += -DW_DATA_DIR=\"$(DATA_DIR)\" -DW_DATA_SRC=\"$(DATA_SRC)\"
+CFLAGS += $(if $(COORDINATES),-DW_COORDINATES)
 
 OBJECTS := $(patsubst %.c,%.o,$(wildcard src/*.c))
 TEXTURES := wood.png wood2.png wood3.png sky.hdr
