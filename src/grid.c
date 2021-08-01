@@ -139,8 +139,16 @@ static int draw_coordinates(unsigned char* buf, unsigned int size,
         fprintf(stderr, "Error: can't load font: %s\n", theme->font);
         return 0;
     }
-    if (       !ttf_load_chars(&ttf, W_COORD_LETTERS, &letters, &numLetters)
-            || !ttf_load_chars(&ttf, W_COORD_NUMBERS, &numbers, &numNumbers)) {
+    if (       !ttf_load_chars(&ttf,
+                               W_COORD_LETTERS,
+                               &letters,
+                               &numLetters,
+                               NULL)
+            || !ttf_load_chars(&ttf,
+                               W_COORD_NUMBERS,
+                               &numbers,
+                               &numNumbers,
+                               NULL)) {
         fprintf(stderr, "Error: can't load some chars\n");
     } else {
         unsigned int i;
