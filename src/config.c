@@ -251,9 +251,40 @@ static int lighting_config(struct Config* config, char** cmd) {
         return 0;
     }
     if (!strcmp(cmd[0], "ibl")) {
-        strncpy(theme->iblPath, cmd[1], sizeof(theme->iblPath) - 1);
+        if (!strcmp(cmd[1], "none")) {
+            theme->ibl.enabled = 0;
+        } else {
+            strncpy(theme->iblPath, cmd[1], sizeof(theme->iblPath) - 1);
+        }
     } else {
         fprintf(stderr, "Error: config: unkown option: %s\n", cmd[1]);
+        return 0;
+    }
+    return 1;
+}
+
+static int interface_config(struct Config* config, char** cmd) {
+    if (!cmd[0] || !cmd[1]) {
+        fprintf(stderr,
+                "Error: config: interface needs at least 2 arguments\n");
+        return 0;
+    }
+    if (!strcmp(cmd[0], "shading")) {
+        if (!strcmp(cmd[1], "pbr")) {
+            config->theme.style = W_UI_NICE;
+        } else if (!strcmp(cmd[1], "solid")) {
+            config->theme.style = W_UI_PURE;
+        } else {
+            fprintf(stderr, "Error: config: unknown shading: %s\n"
+                            "Valid shadings are 'pbr' or 'solid'\n",
+                            cmd[1]);
+            return 0;
+        }
+    } else if (!strcmp(cmd[0], "fov")) {
+        config->theme.fov = strtof(cmd[1], NULL);
+    } else {
+        fprintf(stderr, "Error: config: interface: unknown command: %s\n",
+                        cmd[0]);
         return 0;
     }
     return 1;
@@ -299,14 +330,8 @@ int config_load_config(struct Config* config) {
             ok = player_config(config, cmd + 1);
         } else if (!strcmp(cmd[0], "lighting")) {
             ok = lighting_config(config, cmd + 1);
-        } else if (!strcmp(cmd[0], "fov")) {
-            if (cmd[1]) {
-                config->theme.fov = strtol(cmd[1], NULL, 10);
-                ok = 1;
-            } else {
-                fprintf(stderr, "Error: config: 'fov' needs 1 argument\n");
-                ok = 0;
-            }
+        } else if (!strcmp(cmd[0], "interface")) {
+            ok = interface_config(config, cmd + 1);
         } else {
             fprintf(stderr, "Warning: config: ignoring unknown command: %s\n",
                     cmd[0]);
@@ -377,13 +402,6 @@ int config_parse_args(struct Config* config, unsigned int argc, char** argv) {
                 return 0;
             }
             config->handicap = strtol(argv[i + 1], NULL, 10);
-            i++;
-        } else if (!strcmp(arg, "-l") || !strcmp(arg, "--load")) {
-            if (i == argc - 1) {
-                print_help(argv[0]);
-                return 0;
-            }
-            config->gameFile = argv[i + 1];
             i++;
         } else if (!strcmp(arg, "-i") || !strcmp(arg, "--interface")) {
             if (i == argc - 1) {
