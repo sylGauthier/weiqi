@@ -39,7 +39,7 @@ $(DATA_SRC)/%.ttf:
 	test -d $(DATA_SRC) || mkdir -p $(DATA_SRC)
 	curl "https://pedantic.software/syg/files/weiqi/data/$*.ttf" > $@
 
-install: weiqi $(TEXFILES)
+install: weiqi $(TEXFILES) $(FONTFILES)
 	mkdir -p $(BIN_DIR) $(TEXTURE_DIR) $(MAN_DIR)
 	cp weiqi $(BIN_DIR)
 	cp wrappers/* $(BIN_DIR)

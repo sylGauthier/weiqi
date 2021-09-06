@@ -28,10 +28,7 @@ To install `3dmr`:
 git clone https://pedantic.software/git/3dmr
 cd 3dmr
 git checkout syg/gltf
-export PREFIX=/usr
-export TTF=1
-export GLTF=1
-sudo make install
+sudo make install PREFIX=/usr GLTF=1
 ```
 
 Then, to install `weiqi`:
