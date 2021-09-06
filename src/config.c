@@ -317,7 +317,7 @@ int config_load_config(struct Config* config) {
     }
 
     while ((cmd = cmd_get(f)) && ok) {
-        if (!strcmp(cmd[0], "engine")){
+        if (!strcmp(cmd[0], "engine")) {
             if (!cmd[1] || !cmd[2]) {
                 fprintf(stderr, "Error: config: 'engine' needs 2 arguments\n");
                 ok = 0;

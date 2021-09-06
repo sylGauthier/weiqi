@@ -238,7 +238,7 @@ void* run_interface(void* arg) {
         float l = 0.6;
 
         ui->theme->lmvph = l * ui->theme->stoneRadius;
-        ui->theme->lmvpw = phi * ui->theme->lmvph; 
+        ui->theme->lmvpw = phi * ui->theme->lmvph;
     }
 
     ui->ok = 0;

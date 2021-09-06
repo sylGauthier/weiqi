@@ -79,7 +79,7 @@ static int intersectlp(Vec3 dest, Vec3 p, Vec3 v, Vec4 plane) {
     d2 = dot3(p, plane);
     if (d1 == 0.) { /* if line and plane parallel... */
         if (d2 + plane[3] == 0.) { /* if base point belongs to plane... */
-            /* then the line is included in the plane, so the base point is a 
+            /* then the line is included in the plane, so the base point is a
              * valid solution */
             memcpy(dest, p, sizeof(Vec3));
             return 1;
