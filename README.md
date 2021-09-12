@@ -7,6 +7,10 @@ dependencies.
 For now, it only support playing against GTP engines and through Unix domain
 sockets, but in the future it will be able to connect to mainstream go servers.
 
+You can also play over IRC with [qirc](https://pedantic.software/git/qirc/about)
+which allows you to use any IRC channel as a game lobby to publish/join/play
+games using `weiqi`.
+
 ![screenshot](https://pedantic.software/syg/files/weiqi/4.png)
 
 ## Install
