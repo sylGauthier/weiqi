@@ -9,15 +9,16 @@
 
 #include <3dmr/render/camera_buffer_object.h>
 #include <3dmr/render/lights_buffer_object.h>
+#include <3dmr/render/shader.h>
 #include <3dmr/skybox.h>
 
 #include "interface.h"
 #include "callbacks.h"
 #include "utils.h"
 
-#define SUN_DIRECTION   {-0.4, -1, 0.1}
-#define SUN_COLOR       {0.8, 0.8, 0.8}
-#define AMBIENT_COLOR   {9, 9, 9}
+static const Vec3 SUN_DIRECTION = {-0.4, -1, 0.1};
+static const Vec3 SUN_COLOR     = {0.8, 0.8, 0.8};
+static const Vec3 AMBIENT_COLOR = {9, 9, 9};
 
 static void render_stone(struct Interface* ui, enum WeiqiColor color,
                          unsigned char row, unsigned char col) {
@@ -125,6 +126,10 @@ static char* strmerge(const char* s1, const char* s2) {
 }
 
 static int setup_lighting(struct Scene* scene, struct InterfaceTheme* theme) {
+    struct Lights lights;
+
+    if (!light_init(&lights)) return 0;
+
     if (theme->style == W_UI_NICE && theme->ibl.enabled) {
         GLuint tex;
         char *path1 = NULL, *path2 = NULL, ok = 0;
@@ -142,11 +147,14 @@ static int setup_lighting(struct Scene* scene, struct InterfaceTheme* theme) {
         free(path2);
         return ok;
     } else {
-        struct DirectionalLight l = {SUN_DIRECTION, SUN_COLOR};
-        struct AmbientLight a = {AMBIENT_COLOR};
-        lights_buffer_object_update_dlight(&scene->lights, &l, 0);
-        lights_buffer_object_update_ndlight(&scene->lights, 1);
-        lights_buffer_object_update_ambient(&scene->lights, &a);
+        struct DirectionalLight* dl = &lights.directional[0];
+        struct AmbientLight* a = &lights.ambientLight;
+
+        memcpy(dl->direction, SUN_DIRECTION, sizeof(Vec3));
+        memcpy(dl->color, SUN_COLOR, sizeof(Vec3));
+        memcpy(a->color, AMBIENT_COLOR, sizeof(Vec3));
+
+        lights_buffer_object_update(&scene->lights, &lights);
         uniform_buffer_send(&scene->lights);
     }
     return 1;
@@ -279,6 +287,8 @@ void* run_interface(void* arg) {
                      ui->theme->backgroundColor[1],
                      ui->theme->backgroundColor[2],
                      0);
+        uniform_buffer_bind(&ui->scene.camera, CAMERA_UBO_BINDING);
+        uniform_buffer_bind(&ui->scene.lights, LIGHTS_UBO_BINDING);
         while (ui->status != W_UI_QUIT) {
             viewer_process_events(ui->viewer);
             scene_update_nodes(&ui->scene, update_node, NULL);
