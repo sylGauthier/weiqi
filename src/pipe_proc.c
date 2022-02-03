@@ -1,11 +1,10 @@
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/prctl.h>
-
-#include "pipe_proc.h"
 
 static void exec_child(const char* cmd, char* const* argv,
                        int inpipefd[2], int outpipefd[2]) {
@@ -19,7 +18,7 @@ static void exec_child(const char* cmd, char* const* argv,
     execv(cmd, argv);
 }
 
-int pipe_proc(const char* cmd, char* const* argv, FILE** in, FILE** out) {
+int pipe_proc(const char* cmd, char* const* argv, int* in, int* out) {
     int pid;
     int outpipefd[2] = {-1, -1};
     int inpipefd[2] = {-1, -1};
@@ -38,11 +37,8 @@ int pipe_proc(const char* cmd, char* const* argv, FILE** in, FILE** out) {
         close(outpipefd[0]);
         close(inpipefd[1]);
 
-        if (!(*out = fdopen(inpipefd[0], "r")) || !(*in = fdopen(outpipefd[1], "w"))) {
-            if (*in) fclose(*in);
-            if (*out) fclose(*out);
-            return 0;
-        }
+        *out = inpipefd[0];
+        *in = outpipefd[1];
     }
     return pid;
 }
