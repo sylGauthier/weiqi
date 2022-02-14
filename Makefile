@@ -1,6 +1,6 @@
 include config.mk
 
-DEPS := 3dmr
+DEPS := 3dmr jansson
 
 DIR=$(if $(DESTDIR),$(DESTDIR)/)$(PREFIX)
 BIN_DIR=$(DIR)/$(or $(BINDIR),bin)

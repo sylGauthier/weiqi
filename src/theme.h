@@ -4,12 +4,15 @@
 #include <3dmr/math/linear_algebra.h>
 #include <3dmr/light/ibl.h>
 
+#include <3dasset.h>
+
 enum InterfaceStyle {
     W_UI_PURE,
     W_UI_NICE
 };
 
 struct AssetParams {
+    char texture[128];
     Vec3 color;
     float roughness;
     float metalness;
@@ -17,7 +20,6 @@ struct AssetParams {
 
 struct InterfaceTheme {
     enum InterfaceStyle style;
-    char wood[128];
     char iblPath[128];
     struct IBL ibl;
     Vec3 backgroundColor;

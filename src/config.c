@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <jansson.h>
+
 #include "config.h"
 #include "cmd.h"
 
@@ -10,7 +12,7 @@
 static void load_default_theme(struct InterfaceTheme* theme) {
     memset(theme, 0, sizeof(*theme));
     theme->style = W_UI_NICE;
-    strcpy(theme->wood, "wood.png");
+    strcpy(theme->board.texture, "wood.png");
     theme->ibl.enabled = 0;
 
     SET_VEC3(theme->backgroundColor, 0.3, 0.3, 0.3);
@@ -67,109 +69,6 @@ static int add_engine(struct Config* config,
     return 1;
 }
 
-static int stone_config(struct Config* config, char** cmd) {
-    struct AssetParams* params;
-
-    if (!cmd[0]) {
-        fprintf(stderr, "Error: config: "
-                        "stone requires at least one argument\n");
-        return 0;
-    } else if (!strcmp(cmd[0], "black")) {
-        params = &config->theme.bStone;
-    } else if (!strcmp(cmd[0], "white")) {
-        params = &config->theme.wStone;
-    } else {
-        fprintf(stderr, "Error: config: stone must be followd by color\n");
-        return 0;
-    }
-    if (!cmd[1]) {
-        fprintf(stderr, "Error: config: stone: missing argument\n");
-        return 0;
-    } else if (!strcmp(cmd[1], "color")) {
-        if (!cmd[2] || !cmd[3] || !cmd[4]) {
-            fprintf(stderr, "Error: config: stone: color: missing argument\n");
-            return 0;
-        }
-        params->color[0] = strtof(cmd[2], NULL);
-        params->color[1] = strtof(cmd[3], NULL);
-        params->color[2] = strtof(cmd[4], NULL);
-    } else if (!strcmp(cmd[1], "metalness")) {
-        if (!cmd[2]) {
-            fprintf(stderr, "Error: config: stone: metalness: "
-                            "missing argument\n");
-            return 0;
-        }
-        params->metalness = strtof(cmd[2], NULL);
-    } else if (!strcmp(cmd[1], "roughness")) {
-        if (!cmd[2]) {
-            fprintf(stderr, "Error: config: stone: roughness: "
-                            "missing argument\n");
-            return 0;
-        }
-        params->roughness = strtof(cmd[2], NULL);
-    } else {
-        fprintf(stderr, "Error: config: stone: unknown command: %s\n", cmd[1]);
-        return 0;
-    }
-    return 1;
-}
-
-static int board_config(struct Config* config, char** cmd) {
-    struct InterfaceTheme* theme = &config->theme;
-
-    if (!cmd[0]) {
-        fprintf(stderr, "Error: config: "
-                        "board requires at least one argument\n");
-        return 0;
-    } else if (!strcmp(cmd[0], "size")) {
-        if (!cmd[1]) {
-            fprintf(stderr, "Error: config: size requires one argument\n");
-            return 0;
-        }
-        config->boardSize = strtol(cmd[1], NULL, 10);
-    } else if (!strcmp(cmd[0], "coordinates")) {
-        if (!cmd[1]) {
-            fprintf(stderr, "Error: config: "
-                            "coordinates requires one argument (on|off)\n");
-            return 0;
-        }
-        if (!strcmp(cmd[1], "on")) theme->coordinates = 1;
-        else theme->coordinates = 0;
-    } else if (!strcmp(cmd[0], "texture")) {
-        if (!cmd[1]) {
-            fprintf(stderr, "Error: config: texture requires one argument\n");
-            return 0;
-        }
-        strncpy(theme->wood, cmd[1], sizeof(theme->wood) - 1);
-    } else if (!strcmp(cmd[0], "color")) {
-        if (!cmd[1] || !cmd[2] || !cmd[3]) {
-            fprintf(stderr, "Error: config: color requires 3 arguments\n");
-            return 0;
-        }
-        theme->board.color[0] = strtof(cmd[1], NULL);
-        theme->board.color[1] = strtof(cmd[2], NULL);
-        theme->board.color[2] = strtof(cmd[3], NULL);
-    } else if (!strcmp(cmd[0], "metalness")) {
-        if (!cmd[1]) {
-            fprintf(stderr, "Error: config: board: metalness: "
-                            "missing argument\n");
-            return 0;
-        }
-        theme->board.metalness = strtof(cmd[1], NULL);
-    } else if (!strcmp(cmd[0], "roughness")) {
-        if (!cmd[1]) {
-            fprintf(stderr, "Error: config: board: roughness: "
-                            "missing argument\n");
-            return 0;
-        }
-        theme->board.roughness = strtof(cmd[1], NULL);
-    } else {
-        fprintf(stderr, "Error: config: board: unknown command: %s\n", cmd[0]);
-        return 0;
-    }
-    return 1;
-}
-
 char* config_find_engine(struct Config* config, const char* name) {
     unsigned int i;
     for (i = 0; i < config->numEngines; i++) {
@@ -214,144 +113,172 @@ static int rand_assign(struct Config* config, const char* p1, const char* p2) {
     return 1;
 }
 
-static int player_config(struct Config* config, char** cmd) {
-    struct PlayerConf* conf;
+static int parse_engine(struct Config* config, json_t* engine) {
+    json_t *jname, *jcmd;
 
-    if (!cmd[0] || !cmd[1]) {
-        fprintf(stderr, "Error: config: player requires at least 1 argument\n");
+    if (       !(jname = json_object_get(engine, "name"))
+            || !json_is_string(jname)
+            || !(jcmd = json_object_get(engine, "command"))
+            || !json_is_string(jcmd)) {
+        fprintf(stderr, "Error: config: "
+                "engine must have 'name' and 'command' string attributes\n");
         return 0;
     }
-    if (!strcmp(cmd[0], "black")) {
-        conf = &config->black;
-    } else if (!strcmp(cmd[0], "white")) {
-        conf = &config->white;
-    } else if (!strcmp(cmd[0], "random")) {
-        if (!cmd[2]) {
-            fprintf(stderr, "Error: config: 'player random' "
-                            "requires an extra 2 arguments\n");
-            return 0;
-        }
-        return rand_assign(config, cmd[1], cmd[2]);
-    } else {
-        fprintf(stderr, "Error: config: player: invalid arg: %s\n", cmd[1]);
-        return 0;
-    }
+    return add_engine(config,
+                      json_string_value(jname),
+                      json_string_value(jcmd));
+}
 
-    if (!config_load_player(config, conf, cmd[1])) {
-        return 0;
+static int parse_asset_theme(struct AssetParams* params, json_t* jparam) {
+    json_t* cur;
+
+    if ((cur = json_object_get(jparam, "texture"))
+            && json_is_string(cur)) {
+        strncpy(params->texture,
+                json_string_value(cur),
+                sizeof(params->texture) - 1);
+    }
+    if ((cur = json_object_get(jparam, "color"))
+            && json_is_array(cur)
+            && json_array_size(cur) == 3) {
+        params->color[0] = json_number_value(json_array_get(cur, 0));
+        params->color[1] = json_number_value(json_array_get(cur, 1));
+        params->color[2] = json_number_value(json_array_get(cur, 2));
+    }
+    if ((cur = json_object_get(jparam, "roughness"))
+            && json_is_number(cur)) {
+        params->roughness = json_number_value(cur);
+    }
+    if ((cur = json_object_get(jparam, "metalness"))
+            && json_is_number(cur)) {
+        params->metalness = json_number_value(cur);
     }
     return 1;
 }
 
-static int lighting_config(struct Config* config, char** cmd) {
-    struct InterfaceTheme* theme = &config->theme;
+static int parse_lighting(struct InterfaceTheme* theme, json_t* jlight) {
+    json_t* cur;
 
-    if (!cmd[0] || !cmd[1]) {
-        fprintf(stderr, "Error: config: lighting needs at least 2 arguments\n");
-        return 0;
-    }
-    if (!strcmp(cmd[0], "ibl")) {
-        if (!strcmp(cmd[1], "none")) {
-            theme->ibl.enabled = 0;
-        } else {
-            strncpy(theme->iblPath, cmd[1], sizeof(theme->iblPath) - 1);
-            theme->ibl.enabled = 1;
-        }
-    } else {
-        fprintf(stderr, "Error: config: unkown option: %s\n", cmd[1]);
-        return 0;
+    if ((cur = json_object_get(jlight, "ibl"))
+            && json_is_string(cur)) {
+        strncpy(theme->iblPath,
+                json_string_value(cur),
+                sizeof(theme->iblPath) - 1);
+        theme->ibl.enabled = 1;
     }
     return 1;
 }
 
-static int interface_config(struct Config* config, char** cmd) {
-    if (!cmd[0] || !cmd[1]) {
-        fprintf(stderr,
-                "Error: config: interface needs at least 2 arguments\n");
-        return 0;
+static int parse_theme(struct Config* config, json_t* theme) {
+    json_t* cur;
+
+    if ((cur = json_object_get(theme, "black_stone"))) {
+        if (!parse_asset_theme(&config->theme.bStone, cur)) return 0;
     }
-    if (!strcmp(cmd[0], "shading")) {
-        if (!strcmp(cmd[1], "pbr")) {
-            config->theme.style = W_UI_NICE;
-        } else if (!strcmp(cmd[1], "solid")) {
-            config->theme.style = W_UI_PURE;
+    if ((cur = json_object_get(theme, "white_stone"))) {
+        if (!parse_asset_theme(&config->theme.wStone, cur)) return 0;
+    }
+    if ((cur = json_object_get(theme, "board"))) {
+        if (!parse_asset_theme(&config->theme.board, cur)) return 0;
+    }
+    if ((cur = json_object_get(theme, "lighting"))) {
+        if (!parse_lighting(&config->theme, cur)) return 0;
+    }
+    return 1;
+}
+
+static int parse_players(struct Config* config, json_t* jplayers) {
+    json_t *cur, *white, *black;
+
+    if ((cur = json_object_get(jplayers, "random"))) {
+        if (!json_is_array(cur) || json_array_size(cur) != 2
+                || !json_is_string(json_array_get(cur, 0))
+                || !json_is_string(json_array_get(cur, 1))) {
+            fprintf(stderr, "Error: config: "
+                            "'random' must be an array of 2 players\n");
+            return 0;
+        }
+        return rand_assign(config,
+                           json_string_value(json_array_get(cur, 0)),
+                           json_string_value(json_array_get(cur, 1)));
+    }
+    return 1;
+}
+
+static int parse_config(struct Config* config, json_t* root) {
+    json_t* cur;
+
+    if ((cur = json_object_get(root, "engines"))) {
+        if (!json_is_array(cur)) {
+            fprintf(stderr, "Warning: config: 'engines' must be an array\n");
         } else {
-            fprintf(stderr, "Error: config: unknown shading: %s\n"
-                            "Valid shadings are 'pbr' or 'solid'\n",
-                            cmd[1]);
+            unsigned int i;
+            json_t* engine;
+
+            json_array_foreach(cur, i, engine) {
+                if (!parse_engine(config, engine)) {
+                    return 0;
+                }
+            }
+        }
+    }
+    if ((cur = json_object_get(root, "theme"))) {
+        if (!parse_theme(config, cur)) {
             return 0;
         }
-    } else if (!strcmp(cmd[0], "fov")) {
-        config->theme.fov = strtof(cmd[1], NULL);
-    } else if (!strcmp(cmd[0], "background")) {
-        if (!cmd[1] || !cmd[2] || !cmd[3]) {
-            fprintf(stderr, "Error: config: interface: "
-                            "background needs 3 arguments\n");
+    }
+    if ((cur = json_object_get(root, "players"))) {
+        if (!parse_players(config, cur)) {
             return 0;
         }
-        config->theme.backgroundColor[0] = strtof(cmd[1], NULL);
-        config->theme.backgroundColor[1] = strtof(cmd[2], NULL);
-        config->theme.backgroundColor[2] = strtof(cmd[3], NULL);
-    } else {
-        fprintf(stderr, "Error: config: interface: unknown command: %s\n",
-                        cmd[0]);
+    }
+    return 1;
+}
+
+static int get_conf_path(char* path, unsigned int len) {
+    const char *confdir, *home;
+    char defconfdir[512];
+    char name[] = "weiqi", conf[] = "config.json";
+
+    if (!(confdir = getenv("XDG_CONFIG_HOME"))) {
+        if (!(home = getenv("HOME"))) {
+            confdir = "./";
+        } else {
+            if (strlen(home) + strlen("/.config") + 1 > sizeof(defconfdir)) {
+                fprintf(stderr, "Error: HOME path too long\n");
+                return 0;
+            }
+            strcpy(defconfdir, home);
+            strcpy(defconfdir + strlen(home), "/.config");
+            confdir = defconfdir;
+        }
+    }
+    if (strlen(confdir) + strlen(name) + strlen(conf) + 3 > len) {
+        fprintf(stderr, "Error: conf path too long\n");
         return 0;
     }
+    sprintf(path, "%s/%s/%s", confdir, name, conf);
     return 1;
 }
 
 int config_load_config(struct Config* config) {
     FILE* f;
-    char** cmd;
-    char *home, *confpath;
-    char ok = 1;
+    json_error_t error;
+    int ok = 0;
 
-    if (!(home = getenv("HOME"))) return 0;
-    if (!(confpath = malloc(strlen(home) + strlen("/.weiqi") + 1))) return 0;
-    sprintf(confpath, "%s/.weiqi", home);
-    if (!(f = fopen(confpath, "r"))) {
-        fprintf(stderr, "Warning: no readable config file found. "
-                        "Please create %s\n", confpath);
-        free(confpath);
+    if (!get_conf_path(config->confpath, W_CONF_PATH_SIZE)) return 0;
+    if (!(f = fopen(config->confpath, "r"))) {
+        fprintf(stderr, "Warning: "
+                        "can't open config file: %s, assuming defaults\n",
+                        config->confpath);
         return 1;
     }
-
-    while ((cmd = cmd_get(f)) && ok) {
-        if (!strcmp(cmd[0], "engine")) {
-            if (!cmd[1] || !cmd[2]) {
-                fprintf(stderr, "Error: config: 'engine' needs 2 arguments\n");
-                ok = 0;
-            } else {
-                ok = add_engine(config, cmd[1], cmd[2]);
-            }
-        } else if (!strcmp(cmd[0], "stone")) {
-            ok = stone_config(config, cmd + 1);
-        } else if (!strcmp(cmd[0], "board")) {
-            ok = board_config(config, cmd + 1);
-        } else if (!strcmp(cmd[0], "handicap")) {
-            if (cmd[1]) {
-                config->handicap = strtol(cmd[1], NULL, 10);
-                ok = 1;
-            } else {
-                fprintf(stderr, "Error: config: 'handicap' needs 1 argument\n");
-                ok = 0;
-            }
-        } else if (!strcmp(cmd[0], "player")) {
-            ok = player_config(config, cmd + 1);
-        } else if (!strcmp(cmd[0], "lighting")) {
-            ok = lighting_config(config, cmd + 1);
-        } else if (!strcmp(cmd[0], "interface")) {
-            ok = interface_config(config, cmd + 1);
-        } else {
-            fprintf(stderr, "Warning: config: ignoring unknown command: %s\n",
-                    cmd[0]);
-        }
-        cmd_free(cmd);
+    if (!(config->file = json_loadf(f, 0, &error))) {
+        fprintf(stderr, "Error: couldn't load config file: %s\n", error.text);
+    } else {
+        ok = parse_config(config, config->file);
     }
-
-    cmd_free(cmd);
-    fclose(f);
-    free(confpath);
+    if (config->file && !ok) json_decref(config->file);
     return ok;
 }
 
@@ -439,8 +366,8 @@ int config_parse_args(struct Config* config, unsigned int argc, char** argv) {
                 print_help(argv[0]);
                 return 0;
             }
-            strncpy(config->theme.wood, argv[i + 1],
-                    sizeof(config->theme.wood) - 1);
+            strncpy(config->theme.board.texture, argv[i + 1],
+                    sizeof(config->theme.board.texture) - 1);
             i++;
         } else if (!strcmp(arg, "--coordinates")) {
             config->theme.coordinates = 1;
@@ -484,6 +411,7 @@ int config_parse_args(struct Config* config, unsigned int argc, char** argv) {
 void config_free(struct Config* config) {
     unsigned int i;
 
+    json_decref(config->file);
     for (i = 0; i < config->numEngines; i++) {
         free(config->engines[i].name);
         free(config->engines[i].command);

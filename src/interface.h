@@ -8,6 +8,11 @@
 #include "weiqi.h"
 #include "asset.h"
 
+enum InterfaceMode {
+    W_UI_PLAY,
+    W_UI_CONFIG
+};
+
 enum InterfaceStatus {
     W_UI_QUIT = 0,
     W_UI_RUN,

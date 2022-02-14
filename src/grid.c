@@ -243,9 +243,13 @@ GLuint grid_gen(unsigned char boardSize, struct InterfaceTheme* theme) {
     unsigned char* texBuf;
     GLuint tex = 0;
 
-    if (strcmp(theme->wood, "none")) {
-        if (       !load_tex(W_DATA_DIR"/textures/", theme->wood, &texBuf)
-                && !load_tex(W_DATA_SRC"/textures/", theme->wood, &texBuf)) {
+    if (strlen(theme->board.texture)) {
+        if (       !load_tex(W_DATA_DIR"/textures/",
+                             theme->board.texture,
+                             &texBuf)
+                && !load_tex(W_DATA_SRC"/textures/",
+                             theme->board.texture,
+                             &texBuf)) {
             return 0;
         }
     } else {

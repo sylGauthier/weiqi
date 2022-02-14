@@ -3,7 +3,8 @@
 
 #include "theme.h"
 
-#define W_NUM_ENGINES 32
+#define W_CONF_PATH_SIZE    512
+#define W_NUM_ENGINES       32
 
 enum PlayerType {
     W_HUMAN,
@@ -32,6 +33,7 @@ struct Config {
     struct PlayerConf white;
     struct PlayerConf black;
 
+    char confpath[W_CONF_PATH_SIZE];
     const char* gtpCmd;
     const char* gameFile;
     const char* sockpath;
@@ -42,6 +44,8 @@ struct Config {
     unsigned int numEngines;
 
     struct InterfaceTheme theme;
+
+    void* file;
 };
 
 char* config_find_engine(struct Config* conf, const char* name);
