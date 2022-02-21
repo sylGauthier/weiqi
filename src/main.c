@@ -12,13 +12,13 @@ int main(int argc, char** argv) {
 
     if (       config_load_defaults(&config)
             && (confinit = config_load_config(&config))
-            && (uiinit = ui_start(&ui, &weiqi, &config.theme))) {
+            && (uiinit = ui_start(&ui, &weiqi, &config))) {
         if (argc > 1 && !config_parse_args(&config, argc, argv)) {
             fprintf(stderr, "Error: can't parse args\n");
             ok = 0;
             goto exit;
         } else if (argc == 1) {
-            ui_config_menu(&ui, &config);
+            ui_config_menu(&ui);
             switch (ui.status) {
                 case W_UI_IDLE:
                     break;

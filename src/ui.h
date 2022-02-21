@@ -16,7 +16,7 @@ enum UIStatus {
 };
 
 struct UI {
-    struct InterfaceTheme* theme;
+    struct Config* config;
     struct Weiqi* weiqi;
     enum UIStatus status;
     unsigned char selectPos[2];
@@ -27,9 +27,9 @@ struct UI {
     void* private;
 };
 
-int ui_start(struct UI* ui, struct Weiqi* weiqi, struct InterfaceTheme* theme);
+int ui_start(struct UI* ui, struct Weiqi* weiqi, struct Config* config);
 int ui_stop(struct UI* ui);
-int ui_config_menu(struct UI* ui, struct Config* config);
+int ui_config_menu(struct UI* ui);
 int ui_game_start(struct UI* ui);
 
 int ui_wait(struct UI* ui, enum UIStatus status);

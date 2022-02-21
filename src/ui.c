@@ -153,8 +153,8 @@ static int update_cursor_pos(struct UI* ui, double x, double y) {
     /* plane[3] = -h; */
     if (!intersectlp(boardPos, pos, vec, plane)) return 0;
 
-    boardPos[0] = boardPos[0] / ui->theme->gridScale + 0.5;
-    boardPos[1] = boardPos[1] / ui->theme->gridScale + 0.5;
+    boardPos[0] = boardPos[0] / ui->config->theme.gridScale + 0.5;
+    boardPos[1] = boardPos[1] / ui->config->theme.gridScale + 0.5;
     if (       boardPos[0] >= 0. && boardPos[0] <= 1.
             && boardPos[1] >= 0. && boardPos[1] <= 1.) {
         uip->cursorPos[0] = (boardPos[0] + 1. / (2. * (float) s)) * s;
@@ -249,11 +249,12 @@ static void render_stones(struct UI* ui) {
     Mat3 invNormal, tmp;
     float s = ui->weiqi->boardSize;
     unsigned char row, col, size = ui->weiqi->boardSize;
+    struct InterfaceTheme* theme = &ui->config->theme;
 
     load_id4(model);
 
-    model[3][2] = ui->theme->stoneThickness * ui->theme->stoneRadius;
-    model[2][2] = ui->theme->stoneThickness;
+    model[3][2] = theme->stoneThickness * theme->stoneRadius;
+    model[2][2] = theme->stoneThickness;
 
     /* compute inverse normal only once (same for all stones) */
     mat4to3(tmp, MAT_CONST_CAST(model));
@@ -267,8 +268,8 @@ static void render_stones(struct UI* ui) {
             if (ui->weiqi->board[row * size + col] != W_WHITE) {
                 continue;
             }
-            model[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
-            model[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
+            model[3][0] = theme->gridScale * (col * (1. / (s - 1)) - 0.5);
+            model[3][1] = theme->gridScale * (row * (1. / (s - 1)) - 0.5);
             material_set_matrices(wStoneGeom->material, model, invNormal);
             vertex_array_render(wStoneGeom->vertexArray);
         }
@@ -281,8 +282,8 @@ static void render_stones(struct UI* ui) {
             if (ui->weiqi->board[row * size + col] != W_BLACK) {
                 continue;
             }
-            model[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
-            model[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
+            model[3][0] = theme->gridScale * (col * (1. / (s - 1)) - 0.5);
+            model[3][1] = theme->gridScale * (row * (1. / (s - 1)) - 0.5);
             material_set_matrices(bStoneGeom->material, model, invNormal);
             vertex_array_render(bStoneGeom->vertexArray);
         }
@@ -302,8 +303,8 @@ static void render_pointer(struct UI* ui) {
     load_id4(m);
     load_id3(invNormal);
 
-    m[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
-    m[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
+    m[3][0] = ui->config->theme.gridScale * (col * (1. / (s - 1)) - 0.5);
+    m[3][1] = ui->config->theme.gridScale * (row * (1. / (s - 1)) - 0.5);
     m[3][2] = 0;
     m[2][2] = 1.;
 
@@ -321,6 +322,7 @@ static void render_lmvp(struct UI* ui) {
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
     unsigned char col, row;
+    struct InterfaceTheme* theme = &ui->config->theme;
 
     if (!ui->weiqi->history.last || ui->weiqi->history.last->action != W_PLAY) {
         return;
@@ -331,9 +333,9 @@ static void render_lmvp(struct UI* ui) {
     load_id4(m);
     load_id3(invNormal);
 
-    m[3][0] = ui->theme->gridScale * (col * (1. / (s - 1)) - 0.5);
-    m[3][1] = ui->theme->gridScale * (row * (1. / (s - 1)) - 0.5);
-    m[3][2] = ui->theme->stoneThickness * ui->theme->stoneRadius;
+    m[3][0] = theme->gridScale * (col * (1. / (s - 1)) - 0.5);
+    m[3][1] = theme->gridScale * (row * (1. / (s - 1)) - 0.5);
+    m[3][2] = theme->stoneThickness * theme->stoneRadius;
     m[2][2] = 1.;
 
     material_use(geom->material);
@@ -361,9 +363,9 @@ static int setup_camera(struct UI* ui) {
             || !node_add_child(uip->camOrientation, uip->camNode)) {
         return 0;
     }
-    if (ui->theme->fov > 0.0) {
-        float tanFOV = tan(ui->theme->fov / 360. * M_PI);
-        t[2] = (0.5 / tanFOV + ui->theme->boardThickness / 2.);
+    if (ui->config->theme.fov > 0.0) {
+        float tanFOV = tan(ui->config->theme.fov / 360. * M_PI);
+        t[2] = (0.5 / tanFOV + ui->config->theme.boardThickness / 2.);
     } else {
         t[2] = 1;
     }
@@ -384,14 +386,14 @@ static void run_loop(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     char ok = 0;
 
-    if (ui->theme->gridScale == 0.) {
+    if (ui->config->theme.gridScale == 0.) {
         float s = ui->weiqi->boardSize;
-        ui->theme->gridScale = s / (s + 2);
+        ui->config->theme.gridScale = s / (s + 2);
     }
 
-    ui->theme->stoneRadius = 1. / (2. * (float)(ui->weiqi->boardSize))
-                            * ui->theme->gridScale;
-    ui->theme->pointerSize = ui->theme->stoneRadius / 2.;
+    ui->config->theme.stoneRadius = 1. / (2. * (float)(ui->weiqi->boardSize))
+                            * ui->config->theme.gridScale;
+    ui->config->theme.pointerSize = ui->config->theme.stoneRadius / 2.;
     /* we're fancy and make a last move pointer that's both a golden rectangle
      * and fits perfectly into a stone
      */
@@ -399,13 +401,13 @@ static void run_loop(struct UI* ui) {
         float phi = (1. + sqrt(5.)) / 2.;
         float l = 0.6;
 
-        ui->theme->lmvph = l * ui->theme->stoneRadius;
-        ui->theme->lmvpw = phi * ui->theme->lmvph;
+        ui->config->theme.lmvph = l * ui->config->theme.stoneRadius;
+        ui->config->theme.lmvpw = phi * ui->config->theme.lmvph;
     }
 
     if (!assets_load(&uip->assets,
                      ui->weiqi->boardSize,
-                     ui->theme)) {
+                     &ui->config->theme)) {
         fprintf(stderr, "Error: can't load assets\n");
     } else if (!scene_init(&uip->scene, &uip->camera)) {
         fprintf(stderr, "Error: interface: can't init scene\n");
@@ -525,13 +527,14 @@ error:
 static void* do_start_ui(void* data) {
     struct UI* ui = data;
     struct UIPrivate uip = {0};
+    struct InterfaceTheme* theme = &ui->config->theme;
 
     ui->private = &uip;
 
-    if (ui->theme->fov == 0.) {
+    if (theme->fov == 0.) {
         camera_ortho_projection(1., 1., 0.1, 1000., uip.camera.projection);
     } else {
-        camera_projection(1., ui->theme->fov / 360. * 2 * M_PI, 0.001, 1000.,
+        camera_projection(1., theme->fov / 360. * 2 * M_PI, 0.001, 1000.,
                           uip.camera.projection);
     }
 
@@ -546,9 +549,9 @@ static void* do_start_ui(void* data) {
         uip.viewer->close_callback = close_callback;
         uip.viewer->resize_callback = resize_callback_default;
 
-        glClearColor(ui->theme->backgroundColor[0],
-                     ui->theme->backgroundColor[1],
-                     ui->theme->backgroundColor[2],
+        glClearColor(theme->backgroundColor[0],
+                     theme->backgroundColor[1],
+                     theme->backgroundColor[2],
                      0);
         while (ui->status != W_UI_QUIT) {
             switch (ui->status) {
@@ -573,9 +576,9 @@ exit:
 
 /* following functions are to be called from the master thread */
 
-int ui_start(struct UI* ui, struct Weiqi* weiqi, struct InterfaceTheme* theme) {
+int ui_start(struct UI* ui, struct Weiqi* weiqi, struct Config* config) {
     memset(ui, 0, sizeof(*ui));
-    ui->theme = theme;
+    ui->config = config;
     ui->weiqi = weiqi;
     ui->private = NULL;
     ui->status = W_UI_IDLE;
@@ -594,7 +597,7 @@ int ui_stop(struct UI* ui) {
     return W_NO_ERROR;
 }
 
-int ui_config_menu(struct UI* ui, struct Config* config) {
+int ui_config_menu(struct UI* ui) {
     ui->status = W_UI_CONFIG;
 
     while (ui->status == W_UI_CONFIG) {
