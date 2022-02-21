@@ -5,7 +5,7 @@ enum WeiqiError {
     W_NO_ERROR,
     W_ERROR,
     W_ILLEGAL_MOVE,
-    W_UNDO_MOVE,
+    W_UNDO_ERROR,
     W_FORMAT_ERROR,
     W_GAME_OVER,
     W_QUIT
@@ -19,7 +19,8 @@ enum WeiqiColor {
 
 enum MoveAction {
     W_PLAY,
-    W_PASS
+    W_PASS,
+    W_UNDO
 };
 
 struct Move {

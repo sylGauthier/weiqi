@@ -14,11 +14,12 @@ static int human_get_move(struct Player* player,
     char ok = 0, status = 0;
 
     while (!ok) {
-        status = interface_get_move(player->data, color, action, row, col);
+        status = ui_get_move(player->data, color, action, row, col);
         if (status == W_UI_QUIT) {
             return W_QUIT;
-        } else if (status == W_UI_UNDO) {
-            return W_UNDO_MOVE;
+        } else if (status == W_UI_CRASH) {
+            fprintf(stderr, "Error: UI crashed\n");
+            return W_ERROR;
         } else if (*action == W_PASS) {
             return W_NO_ERROR;
         } else if (weiqi_move_is_valid(player->weiqi, color, *row, *col)
@@ -49,7 +50,7 @@ static void human_free(struct Player* player) {
     return;
 }
 
-int player_human_init(struct Player* player, struct Interface* ui) {
+int player_human_init(struct Player* player, struct UI* ui) {
     player->data = ui;
     player->init = human_init;
     player->send_move = human_send_move;

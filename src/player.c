@@ -2,7 +2,7 @@
 
 int player_init(struct Player* player,
                 struct PlayerConf* config,
-                struct Interface* ui) {
+                struct UI* ui) {
     switch (config->type) {
         case W_HUMAN:
             if (!player_human_init(player, ui)) {

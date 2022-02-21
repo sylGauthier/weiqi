@@ -13,7 +13,6 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     memset(theme, 0, sizeof(*theme));
     theme->style = W_UI_NICE;
     strcpy(theme->board.texture, "wood.png");
-    theme->ibl.enabled = 0;
 
     SET_VEC3(theme->backgroundColor, 0.3, 0.3, 0.3);
     SET_VEC3(theme->bStone.color, 0, 0, 0);
@@ -31,7 +30,7 @@ static void load_default_theme(struct InterfaceTheme* theme) {
 
     theme->boardThickness = 0.01;
     theme->gridScale = 0.;
-    theme->stoneYScale = 0.3;
+    theme->stoneThickness = 0.3;
     theme->pointerSize = 0.01;
     theme->fov = 60;
 
@@ -164,7 +163,6 @@ static int parse_lighting(struct InterfaceTheme* theme, json_t* jlight) {
         strncpy(theme->iblPath,
                 json_string_value(cur),
                 sizeof(theme->iblPath) - 1);
-        theme->ibl.enabled = 1;
     }
     return 1;
 }
@@ -172,6 +170,30 @@ static int parse_lighting(struct InterfaceTheme* theme, json_t* jlight) {
 static int parse_theme(struct Config* config, json_t* theme) {
     json_t* cur;
 
+    if ((cur = json_object_get(theme, "style"))) {
+        const char* style;
+
+        if (!(style = json_string_value(cur))) {
+            fprintf(stderr, "Error: config: 'style' must be a string\n");
+            return 0;
+        } else if (!strcmp(style, "pure")) {
+            config->theme.style = W_UI_PURE;
+        } else if (!strcmp(style, "nice")) {
+            config->theme.style = W_UI_NICE;
+
+        } else {
+            fprintf(stderr, "Error: config: "
+                    "theme must be one of 'nice', 'pure'\n");
+            return 0;
+        }
+    }
+    if ((cur = json_object_get(theme, "fov"))) {
+        if (!json_is_number(cur)) {
+            fprintf(stderr, "Error: config: 'fov' must be a number\n");
+            return 0;
+        }
+        config->theme.fov = json_number_value(cur);
+    }
     if ((cur = json_object_get(theme, "black_stone"))) {
         if (!parse_asset_theme(&config->theme.bStone, cur)) return 0;
     }

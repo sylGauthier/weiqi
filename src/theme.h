@@ -21,8 +21,8 @@ struct AssetParams {
 struct InterfaceTheme {
     enum InterfaceStyle style;
     char iblPath[128];
-    struct IBL ibl;
     Vec3 backgroundColor;
+    Vec3 ambientColor, sunDirection, sunColor;
 
     struct AssetParams bStone;
     struct AssetParams wStone;
@@ -31,7 +31,7 @@ struct InterfaceTheme {
     struct AssetParams lmvp;
 
     float boardThickness, gridScale;
-    float stoneRadius, stoneYScale;
+    float stoneRadius, stoneThickness;
     float pointerSize;
     float fov;
 

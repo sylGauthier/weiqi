@@ -6,7 +6,7 @@
 #include "cmd.h"
 
 int game_server_init(struct GameServer* srv,
-                     struct Interface* ui,
+                     struct UI* ui,
                      struct Weiqi* weiqi,
                      struct Config* config) {
     int binit = 0, winit = 0;
@@ -35,6 +35,15 @@ void game_server_free(struct GameServer* srv) {
     if (srv->black.free) srv->black.free(&srv->black);
 }
 
+static int undo(struct GameServer* srv) {
+    if (       srv->black.undo(&srv->black)
+            && srv->white.undo(&srv->white)) {
+        weiqi_undo_move(srv->weiqi);
+        return 1;
+    }
+    return 0;
+}
+
 static int play_turn(struct GameServer* srv, enum WeiqiColor color) {
     struct Player *p1, *p2;
     unsigned char row, col;
@@ -50,6 +59,13 @@ static int play_turn(struct GameServer* srv, enum WeiqiColor color) {
     }
     if ((err = p1->get_move(p1, color, &action, &row, &col)) != W_NO_ERROR) {
         return err;
+    }
+    if (action == W_UNDO) {
+        if (undo(srv)) {
+            return W_NO_ERROR;
+        } else {
+            return W_UNDO_ERROR;
+        }
     }
     if ((err = weiqi_register_move(srv->weiqi, color, action, row, col))
                != W_NO_ERROR) {
@@ -71,15 +87,6 @@ static int play_turn(struct GameServer* srv, enum WeiqiColor color) {
     return err;
 }
 
-static int undo(struct GameServer* srv) {
-    if (       srv->black.undo(&srv->black)
-            && srv->white.undo(&srv->white)) {
-        weiqi_undo_move(srv->weiqi);
-        return 1;
-    }
-    return 0;
-}
-
 int game_server_run(struct GameServer* srv) {
     enum WeiqiColor color;
 
@@ -93,7 +100,7 @@ int game_server_run(struct GameServer* srv) {
     }
 
     color = W_BLACK;
-    while (srv->ui->status != W_UI_QUIT) {
+    while (srv->ui->status != W_UI_QUIT && srv->ui->status != W_UI_CRASH) {
         enum WeiqiError err;
         err = play_turn(srv, color);
         switch (err) {
@@ -101,21 +108,17 @@ int game_server_run(struct GameServer* srv) {
                 return 0;
             case W_GAME_OVER:
                 fprintf(stderr, "game over\n");
-                interface_wait(srv->ui);
+                ui_wait(srv->ui, W_UI_QUIT);
                 return 1;
-            case W_UNDO_MOVE:
-                if (       undo(srv)
-                        && undo(srv)) {
-                    continue;
-                } else {
-                    fprintf(stderr, "Error: can't undo\n");
-                }
+            case W_UNDO_ERROR:
+                fprintf(stderr, "Error: can't undo\n");
+                break;
             default:
                 color = color == W_WHITE ? W_BLACK : W_WHITE;
                 break;
         }
     }
-    if (!srv->ui->ok) {
+    if (srv->ui->status == W_UI_CRASH) {
         fprintf(stderr, "Error: UI crashed\n");
         return 0;
     }

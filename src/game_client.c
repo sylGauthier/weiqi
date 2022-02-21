@@ -101,7 +101,7 @@ static int client_init(struct GameClient* c) {
 }
 
 int game_client_init(struct GameClient* client,
-                     struct Interface* ui,
+                     struct UI* ui,
                      struct Weiqi* weiqi,
                      struct Config* config) {
     int pinit = 0;
@@ -202,15 +202,17 @@ int game_client_run(struct GameClient* client) {
                 }
                 if (err == W_GAME_OVER) {
                     fprintf(stderr, "game over");
-                    interface_wait(client->ui);
+                    ui_wait(client->ui, W_UI_QUIT);
                     break;
                 }
             }
         }
         cmd_free(cmd);
     }
-    if (!client->ui->ok) fprintf(stderr, "Error: UI crashed\n");
-    return ok && client->ui->ok;
+    if (client->ui->status == W_UI_CRASH) {
+        fprintf(stderr, "Error: UI crashed\n");
+    }
+    return ok && (client->ui->status != W_UI_CRASH);
 }
 
 void game_client_free(struct GameClient* client) {

@@ -8,37 +8,26 @@
 
 #define GRID_RES 1024
 
-struct Asset3D {
-    struct VertexArray* va;
-    struct Material* mat;
-    struct SolidMaterialParams* solidParams;
-    struct PBRMaterialParams* pbrParams;
+struct Assets {
+    struct Node* board;
+    struct Node* wStone;
+    struct Node* bStone;
+    struct Node* pointer;
+    struct Node* lmvPointer;
+
+    struct MaterialConfig boardMat;
+    struct MaterialConfig wStoneMat;
+    struct MaterialConfig bStoneMat;
+    struct MaterialConfig pointerMat;
+    struct MaterialConfig lmvPointerMat;
+
+    struct Lights lights;
+    struct IBL ibl;
 };
 
-struct Board3D {
-    struct Asset3D geom;
-    float gridScale;
-    float thickness;
-};
-
-struct Stone3D {
-    struct Asset3D geom;
-    float radius;
-};
-
-GLuint grid_gen(unsigned char boardSize, struct InterfaceTheme* theme);
-
-int board_create(struct Asset3D* board, unsigned int size,
-                 struct InterfaceTheme* theme);
-
-int stone_create(struct Asset3D* stone, char white,
-                 struct InterfaceTheme* theme);
-
-int pointer_create(struct Asset3D* pointer, struct InterfaceTheme* theme);
-
-int lmvpointer_create(struct Asset3D* lmvp, struct InterfaceTheme* theme);
-
-void asset_init(struct Asset3D* asset);
-void asset_free(struct Asset3D* asset);
+int assets_load(struct Assets* assets,
+                unsigned char boardSize,
+                struct InterfaceTheme* theme);
+void assets_free(struct Assets* assets);
 
 #endif

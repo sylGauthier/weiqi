@@ -2,210 +2,150 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <3dmr/mesh/box.h>
-#include <3dmr/mesh/icosphere.h>
+#include <3dmr/skybox.h>
+#include <3dasset.h>
 
 #include "asset.h"
 
-void asset_init(struct Asset3D* asset) {
-    asset->va = NULL;
-    asset->mat = NULL;
-    asset->solidParams = NULL;
-    asset->pbrParams = NULL;
+GLuint grid_gen(unsigned char boardSize, struct InterfaceTheme* theme);
+
+static char* strmerge(const char* s1, const char* s2) {
+    char* res;
+    if (       strlen(s1) < (size_t)(-1) / 2 && strlen(s2) < (size_t)(-1) / 2
+            && (res = malloc(strlen(s1) + strlen(s2) + 1))) {
+        strcpy(res, s1);
+        strcpy(res + strlen(s1), s2);
+    }
+    return res;
 }
 
-void asset_free(struct Asset3D* asset) {
-    vertex_array_free(asset->va);
-    free(asset->mat);
-    free(asset->solidParams);
-    free(asset->pbrParams);
+static int load_ibl(struct Assets* assets, struct InterfaceTheme* theme) {
+    if (theme->style == W_UI_NICE && strlen(theme->iblPath)) {
+        GLuint tex;
+        char *path1 = NULL, *path2 = NULL, ok = 0;
+
+        if (       !(path1 = strmerge(W_DATA_DIR"/textures/", theme->iblPath))
+                || !(path2 = strmerge(W_DATA_SRC"/textures/", theme->iblPath))) {
+            fprintf(stderr, "Error: lighting: can't merge strings\n");
+        } else if (!(tex = skybox_load_texture_hdr_equirect(path1, 1024))
+                && !(tex = skybox_load_texture_hdr_equirect(path2, 1024))) {
+            fprintf(stderr, "Error: lighting: can't load IBL texture\n");
+        } else {
+            ok = compute_ibl(tex, 32, 1024, 5, 256, &assets->ibl);
+            if (ok) {
+                assets->ibl.enabled = 1;
+            }
+        }
+        free(path1);
+        free(path2);
+        return ok;
+    }
+    return 1;
 }
 
-static int solid_asset_tex(struct Asset3D* asset, enum MeshFlags flags,
-                           GLuint tex) {
-    int ok = 0;
-    if (!(asset->solidParams = solid_material_params_new())) {
-        fprintf(stderr, "Error: interface: can't create solid params\n");
-    } else {
-        material_param_set_vec3_texture(&asset->solidParams->color, tex);
-        asset->mat = solid_material_new(flags, asset->solidParams);
-        ok = !!asset->mat;
-    }
-    if (!ok) {
-        free(asset->mat);
-        free(asset->solidParams);
-    }
-    return ok;
+static int load_lights(struct Assets* assets, struct InterfaceTheme* theme) {
+    struct DirectionalLight* dl = &assets->lights.directional[0];
+    struct AmbientLight* a = &assets->lights.ambientLight;
+
+    if (!light_init(&assets->lights)) return 0;
+
+    memcpy(dl->direction, theme->sunDirection, sizeof(Vec3));
+    memcpy(dl->color, theme->sunColor, sizeof(Vec3));
+    memcpy(a->color, theme->ambientColor, sizeof(Vec3));
+
+    return 1;
 }
 
-static int solid_asset(struct Asset3D* asset, enum MeshFlags flags,
-                       Vec3 color) {
-    int ok = 0;
-    if (!(asset->solidParams = solid_material_params_new())) {
-        fprintf(stderr, "Error: interface: can't create solid params\n");
-    } else {
-        material_param_set_vec3_constant(&asset->solidParams->color, color);
-        asset->mat = solid_material_new(flags, asset->solidParams);
-        ok = !!asset->mat;
-    }
-    if (!ok) {
-        free(asset->mat);
-        free(asset->solidParams);
-    }
-    return ok;
-}
+int assets_load(struct Assets* assets,
+                unsigned char boardSize,
+                struct InterfaceTheme* theme) {
+    GLuint gridTex;
 
-static int pbr_asset(struct Asset3D* asset, enum MeshFlags flags,
-                     Vec3 color, float metal, float rough,
-                     struct IBL* ibl) {
-    int ok = 0;
-    if (!(asset->pbrParams = pbr_material_params_new())) {
-        fprintf(stderr, "Error: interface: can't create pbr params\n");
-    } else {
-        material_param_set_vec3_constant(&asset->pbrParams->albedo, color);
-        material_param_set_float_constant(&asset->pbrParams->metalness, metal);
-        material_param_set_float_constant(&asset->pbrParams->roughness, rough);
-        if (ibl->enabled) asset->pbrParams->ibl = ibl;
-        asset->mat = pbr_material_new(flags, asset->pbrParams);
-        ok = !!asset->mat;
-    }
-    if (!ok) {
-        free(asset->mat);
-        free(asset->pbrParams);
-    }
-    return ok;
-}
+    memset(assets, 0, sizeof(*assets));
 
-static int pbr_asset_tex(struct Asset3D* asset, enum MeshFlags flags,
-                         GLuint tex, float metal, float rough,
-                         struct IBL* ibl) {
-    int ok = 0;
-    if (!(asset->pbrParams = pbr_material_params_new())) {
-        fprintf(stderr, "Error: interface: can't create pbr params\n");
-    } else {
-        material_param_set_vec3_texture(&asset->pbrParams->albedo, tex);
-        material_param_set_float_constant(&asset->pbrParams->metalness, metal);
-        material_param_set_float_constant(&asset->pbrParams->roughness, rough);
-        if (ibl->enabled) asset->pbrParams->ibl = ibl;
-        asset->mat = pbr_material_new(flags, asset->pbrParams);
-        ok = !!asset->mat;
+    if (!load_ibl(assets, theme)) {
+        fprintf(stderr, "Error: assets_load: load_ibl failed\n");
+        return 0;
     }
-    if (!ok) {
-        free(asset->mat);
-        free(asset->pbrParams);
+
+    if (!(gridTex = grid_gen(boardSize, theme))) {
+        fprintf(stderr, "Error: assets_load: grid_gen failed\n");
+        return 0;
     }
-    return ok;
-}
 
-int stone_create(struct Asset3D* stone, char white,
-                 struct InterfaceTheme* theme) {
-    struct Mesh s;
-    int ok = 0;
-    struct AssetParams* params = white ? &theme->wStone : &theme->bStone;
-
-    if (!make_icosphere(&s, theme->stoneRadius, 4)) {
-        fprintf(stderr, "Error: interface: can't create sphere\n");
-    } else if (!(stone->va = vertex_array_new(&s))) {
-        fprintf(stderr, "Error: interface: can't create vertex array\n");
-    } else {
-        switch (theme->style) {
-            case W_UI_PURE:
-                ok = solid_asset(stone, s.flags, params->color);
-                break;
-            case W_UI_NICE:
-                ok = pbr_asset(stone, s.flags,
-                               params->color, params->metalness,
-                               params->roughness, &theme->ibl);
-                break;
-            default:
-                ok = solid_asset(stone, s.flags, params->color);
-                break;
+    asset_mat_solid_color(&assets->pointerMat, theme->pointer.color[0],
+                                               theme->pointer.color[1],
+                                               theme->pointer.color[2]);
+    asset_mat_solid_color(&assets->lmvPointerMat, theme->lmvp.color[0],
+                                                  theme->lmvp.color[1],
+                                                  theme->lmvp.color[2]);
+    if (theme->style == W_UI_PURE) {
+        asset_mat_solid_color(&assets->wStoneMat, theme->wStone.color[0],
+                                                  theme->wStone.color[1],
+                                                  theme->wStone.color[2]);
+        asset_mat_solid_color(&assets->bStoneMat, theme->bStone.color[0],
+                                                  theme->bStone.color[1],
+                                                  theme->bStone.color[2]);
+        asset_mat_solid_texid(&assets->boardMat, gridTex);
+    } else if (theme->style == W_UI_NICE) {
+        asset_mat_pbr_color(&assets->wStoneMat, theme->wStone.color[0],
+                                                theme->wStone.color[1],
+                                                theme->wStone.color[2],
+                                                theme->wStone.metalness,
+                                                theme->wStone.roughness);
+        asset_mat_pbr_color(&assets->bStoneMat, theme->bStone.color[0],
+                                                theme->bStone.color[1],
+                                                theme->bStone.color[2],
+                                                theme->bStone.metalness,
+                                                theme->bStone.roughness);
+        asset_mat_pbr_texid(&assets->boardMat, gridTex,
+                                               theme->board.metalness,
+                                               theme->board.roughness);
+        if (assets->ibl.enabled) {
+            assets->bStoneMat.params.pbr.ibl = &assets->ibl;
+            assets->wStoneMat.params.pbr.ibl = &assets->ibl;
+            assets->boardMat.params.pbr.ibl = &assets->ibl;
         }
     }
-    mesh_free(&s);
-    if (!ok) {
-        vertex_array_free(stone->va);
+    if (       !(assets->board = asset_quad(&assets->boardMat, 1, 1))
+            || !(assets->wStone = asset_icosphere(&assets->wStoneMat,
+                                                  theme->stoneRadius, 4))
+            || !(assets->bStone = asset_icosphere(&assets->bStoneMat,
+                                                  theme->stoneRadius, 4))
+            || !(assets->pointer = asset_box(&assets->pointerMat,
+                                             theme->pointerSize,
+                                             theme->pointerSize,
+                                             theme->pointerSize))
+            || !(assets->lmvPointer = asset_box(&assets->lmvPointerMat,
+                                                theme->lmvpw,
+                                                theme->lmvph,
+                                                theme->stoneThickness
+                                                * theme->stoneRadius * 2.2))) {
+        fprintf(stderr, "Error: assets_load: could not create an asset\n");
+    } else if (!load_lights(assets, theme)) {
+        fprintf(stderr, "Error: assets_load: load_lights failed\n");
+    } else {
+        return 1;
     }
-    return ok;
+    assets_free(assets);
+    return 0;
 }
 
-int board_create(struct Asset3D* board, unsigned int size,
-                 struct InterfaceTheme* theme) {
-    struct Mesh box;
-    GLuint tex;
-    int ok = 0;
-    Vec3 axis = {1, 0, 0};
-
-    if (!make_box(&box, 1., theme->boardThickness, 1.)) {
-        fprintf(stderr, "Error: interface: can't create box\n");
-    } else if ( mesh_rotate(&box, axis, M_PI), /* HACK:we have to flip the board
-                                                  so that the texture is not
-                                                  reversed */
-                !(board->va = vertex_array_new(&box))) {
-        fprintf(stderr, "Error: interface: can't create vertex array\n");
-    } else if (!(tex = grid_gen(size, theme))) {
-        fprintf(stderr, "Error: interface: can't create grid\n");
-    } else {
-        switch (theme->style) {
-            case W_UI_PURE:
-                ok = solid_asset_tex(board, box.flags, tex);
-                break;
-            case W_UI_NICE:
-                ok = pbr_asset_tex(board, box.flags, tex,
-                                   theme->board.metalness,
-                                   theme->board.roughness,
-                                   &theme->ibl);
-                break;
-            default:
-                ok = solid_asset_tex(board, box.flags, tex);
-                break;
-        }
+static void free_asset(struct Node* n) {
+    if (n) {
+        struct Geometry* g = n->data.geometry;
+        vertex_array_free(g->vertexArray);
+        free(g->material);
+        free(g);
+        free(n);
     }
-    mesh_free(&box);
-    if (!ok) {
-        vertex_array_free(board->va);
-    }
-    return ok;
 }
 
-int pointer_create(struct Asset3D* pointer, struct InterfaceTheme* theme) {
-    struct Mesh cube;
-    int ok = 0;
-
-    if (!make_box(&cube,
-                  theme->pointerSize,
-                  theme->pointerSize,
-                  theme->pointerSize)) {
-        fprintf(stderr, "Error: interface: can't create cursor\n");
-    } else if (!(pointer->va = vertex_array_new(&cube))) {
-        fprintf(stderr, "Error: interface: can't create vertex array\n");
-    } else {
-        ok = solid_asset(pointer, cube.flags, theme->pointer.color);
-    }
-    mesh_free(&cube);
-    if (!ok) {
-        vertex_array_free(pointer->va);
-    }
-    return ok;
-}
-
-int lmvpointer_create(struct Asset3D* pointer, struct InterfaceTheme* theme) {
-    struct Mesh cube;
-    int ok = 0;
-
-    if (!make_box(&cube,
-                  theme->lmvpw,
-                  theme->stoneYScale * theme->stoneRadius * 2.2,
-                  theme->lmvph)) {
-        fprintf(stderr, "Error: interface: can't create last move pointer\n");
-    } else if (!(pointer->va = vertex_array_new(&cube))) {
-        fprintf(stderr, "Error: interface: can't create vertex array\n");
-    } else {
-        ok = solid_asset(pointer, cube.flags, theme->lmvp.color);
-    }
-    mesh_free(&cube);
-    if (!ok) {
-        vertex_array_free(pointer->va);
-    }
-    return ok;
+void assets_free(struct Assets* assets) {
+    free_asset(assets->board);
+    free_asset(assets->wStone);
+    free_asset(assets->bStone);
+    free_asset(assets->pointer);
+    free_asset(assets->lmvPointer);
+    return;
 }

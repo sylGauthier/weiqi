@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "weiqi.h"
-#include "interface.h"
+#include "ui.h"
 #include "config.h"
 
 struct Player {
@@ -28,9 +28,9 @@ struct Player {
 
 int player_gtp_pipe_init(struct Player* player, const char* cmd);
 int player_gtp_socket_init(struct Player* player, const char* cmd);
-int player_human_init(struct Player* player, struct Interface* ui);
+int player_human_init(struct Player* player, struct UI* ui);
 int player_init(struct Player* player,
                 struct PlayerConf* config,
-                struct Interface* ui);
+                struct UI* ui);
 
 #endif
