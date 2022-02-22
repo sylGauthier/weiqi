@@ -450,6 +450,108 @@ static void run_loop(struct UI* ui) {
     uip->viewer->resize_callback = resize_callback_default;
 }
 
+static void player_select_widget(struct nk_context* nkctx,
+                                 struct UI* ui,
+                                 int* color,
+                                 int* selection) {
+    const char* players[] = {"White", "Black", "Random"};
+
+    nk_combobox(nkctx, players, 3, color, 35,
+                nk_vec2(nk_widget_width(nkctx), 200));
+    if (nk_combo_begin_label(nkctx,
+                             *selection > 0
+                                ? ui->config->engines[*selection - 1].name
+                                : "human",
+                             nk_vec2(nk_widget_width(nkctx), 200))) {
+        int i;
+        nk_layout_row_dynamic(nkctx, 35, 1);
+        if (nk_combo_item_label(nkctx, "human", NK_TEXT_LEFT)) {
+            *selection = 0;
+        } else {
+            for (i = 0; i < ui->config->numEngines; i++) {
+                if (nk_combo_item_label(nkctx,
+                                        ui->config->engines[i].name,
+                                        NK_TEXT_LEFT)) {
+                    *selection = i + 1;
+                }
+            }
+        }
+        nk_combo_end(nkctx);
+    }
+}
+
+static int player_index_from_config(struct Config* c, struct PlayerConf* conf) {
+    int i;
+
+    switch (conf->type) {
+        case W_GTP_LOCAL:
+            for (i = 0; i < c->numEngines; i++) {
+                if (!strcmp(c->engines[i].command, conf->gtpCmd)) {
+                    return i + 1;
+                }
+            }
+        default:
+            return 0;
+    }
+    return 0;
+}
+
+static void player_config_from_index(struct Config* c,
+                                     struct PlayerConf* conf,
+                                     int idx) {
+    if (idx == 0) {
+        conf->type = W_HUMAN;
+        return;
+    }
+    conf->type = W_GTP_LOCAL;
+    conf->gtpCmd = c->engines[idx - 1].command;
+}
+
+static void player_select(struct nk_context* nkctx, struct UI* ui) {
+    static int player1 = 0, player2 = 0, playerColor1 = 0, playerColor2 = 1;
+
+    if (ui->config->randomPlayer) {
+        playerColor1 = 2;
+        playerColor2 = 2;
+        player1 = player_index_from_config(ui->config, &ui->config->white);
+        player2 = player_index_from_config(ui->config, &ui->config->black);
+    } else if (playerColor1 == 0) {
+        player1 = player_index_from_config(ui->config, &ui->config->white);
+        player2 = player_index_from_config(ui->config, &ui->config->black);
+    } else {
+        player1 = player_index_from_config(ui->config, &ui->config->black);
+        player2 = player_index_from_config(ui->config, &ui->config->white);
+    }
+    player_select_widget(nkctx, ui, &playerColor1, &player1);
+    switch (playerColor1) {
+        case 0: playerColor2 = 1; break;
+        case 1: playerColor2 = 0; break;
+        case 2: playerColor2 = 2; break;
+        default: break;
+    }
+    player_select_widget(nkctx, ui, &playerColor2, &player2);
+    switch (playerColor2) {
+        case 0: playerColor1 = 1; break;
+        case 1: playerColor1 = 0; break;
+        case 2: playerColor1 = 2; break;
+        default: break;
+    }
+
+    if (playerColor1 == 0) {
+        player_config_from_index(ui->config, &ui->config->white, player1);
+        player_config_from_index(ui->config, &ui->config->black, player2);
+        ui->config->randomPlayer = 0;
+    } else if (playerColor1 == 1) {
+        player_config_from_index(ui->config, &ui->config->black, player1);
+        player_config_from_index(ui->config, &ui->config->white, player2);
+        ui->config->randomPlayer = 0;
+    } else {
+        player_config_from_index(ui->config, &ui->config->white, player1);
+        player_config_from_index(ui->config, &ui->config->black, player2);
+        ui->config->randomPlayer = 1;
+    }
+}
+
 static void config_ui_update(struct nk_context* nkctx, struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     struct Viewer* viewer = uip->viewer;
@@ -474,10 +576,20 @@ static void config_ui_update(struct nk_context* nkctx, struct UI* ui) {
                     viewer->buttonPressed[2]);
     nk_input_end(nkctx);
 
-    nk_begin(nkctx, "config", nk_rect(viewer->width / 2 - w / 2, 100, w, h),
-            NK_WINDOW_TITLE | NK_WINDOW_BORDER);
+    nk_begin(nkctx, "Game configuration",
+             nk_rect(viewer->width / 2 - w / 2, 100, w, h),
+             NK_WINDOW_TITLE | NK_WINDOW_BORDER);
+    nk_layout_row_dynamic(nkctx, 40, 2);
+
+    player_select(nkctx, ui);
+    nk_label(nkctx, "Board size", NK_TEXT_ALIGN_LEFT);
+    nk_property_int(nkctx, "", 5, &ui->config->boardSize, 25, 1, 0.5);
+
+    nk_label(nkctx, "Handicap", NK_TEXT_ALIGN_LEFT);
+    nk_property_int(nkctx, "", 0, &ui->config->handicap, 9, 1, 0.5);
+
     nk_layout_row_dynamic(nkctx, 40, 1);
-    if (nk_button_label(nkctx, "Start")) {
+    if (nk_button_label(nkctx, "Start game")) {
         ui->status = W_UI_IDLE;
     }
     nk_end(nkctx);

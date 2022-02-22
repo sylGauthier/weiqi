@@ -28,10 +28,11 @@ enum GameMode {
 };
 
 struct Config {
-    unsigned char boardSize;
-    unsigned char handicap;
+    int boardSize;
+    int handicap;
     struct PlayerConf white;
     struct PlayerConf black;
+    int randomPlayer;
 
     char confpath[W_CONF_PATH_SIZE];
     const char* gtpCmd;
@@ -49,6 +50,7 @@ struct Config {
 };
 
 char* config_find_engine(struct Config* conf, const char* name);
+void config_randomize_players(struct Config* conf);
 
 int config_load_defaults(struct Config* conf);
 int config_load_config(struct Config* conf);

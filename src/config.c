@@ -78,6 +78,15 @@ char* config_find_engine(struct Config* config, const char* name) {
     return NULL;
 }
 
+void config_randomize_players(struct Config* config) {
+    srand(time(NULL));
+    if (rand() % 2) {
+        struct PlayerConf tmp = config->black;
+        config->black = config->white;
+        config->white = tmp;
+    }
+}
+
 static int config_load_player(struct Config* config,
                               struct PlayerConf* c,
                               const char* p) {
@@ -90,22 +99,6 @@ static int config_load_player(struct Config* config,
         c->type = W_GTP_LOCAL;
         if (!(c->gtpCmd = config_find_engine(config, p))) {
             fprintf(stderr, "Error: invalid GTP engine: %s\n", p);
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static int rand_assign(struct Config* config, const char* p1, const char* p2) {
-    srand(time(NULL));
-    if (rand() % 2 == 0) {
-        if (       !config_load_player(config, &config->white, p1)
-                || !config_load_player(config, &config->black, p2)) {
-            return 0;
-        }
-    } else {
-        if (       !config_load_player(config, &config->black, p1)
-                || !config_load_player(config, &config->white, p2)) {
             return 0;
         }
     }
@@ -210,7 +203,7 @@ static int parse_theme(struct Config* config, json_t* theme) {
 }
 
 static int parse_players(struct Config* config, json_t* jplayers) {
-    json_t *cur, *white, *black;
+    json_t *cur;
 
     if ((cur = json_object_get(jplayers, "random"))) {
         if (!json_is_array(cur) || json_array_size(cur) != 2
@@ -220,9 +213,37 @@ static int parse_players(struct Config* config, json_t* jplayers) {
                             "'random' must be an array of 2 players\n");
             return 0;
         }
-        return rand_assign(config,
-                           json_string_value(json_array_get(cur, 0)),
-                           json_string_value(json_array_get(cur, 1)));
+        config->randomPlayer = 1;
+        return config_load_player(config,
+                                  &config->black,
+                                  json_string_value(json_array_get(cur, 0)))
+            && config_load_player(config,
+                                  &config->white,
+                                  json_string_value(json_array_get(cur, 1)));
+    }
+    if ((cur = json_object_get(jplayers, "white"))) {
+        if (!json_is_string(cur)) {
+            fprintf(stderr, "Error: config: player 'white' must be string\n");
+            return 0;
+        }
+        if (!config_load_player(config,
+                                &config->white,
+                                json_string_value(cur))) {
+            fprintf(stderr, "Error: config: config_load_player failed\n");
+            return 0;
+        }
+    }
+    if ((cur = json_object_get(jplayers, "black"))) {
+        if (!json_is_string(cur)) {
+            fprintf(stderr, "Error: config: player 'black' must be string\n");
+            return 0;
+        }
+        if (!config_load_player(config,
+                                &config->black,
+                                json_string_value(cur))) {
+            fprintf(stderr, "Error: config: config_load_player failed\n");
+            return 0;
+        }
     }
     return 1;
 }
@@ -344,7 +365,9 @@ int config_parse_args(struct Config* config, unsigned int argc, char** argv) {
                 print_help(argv[0]);
                 return 0;
             }
-            if (!rand_assign(config, argv[i + 1], argv[i + 2])) {
+            config->randomPlayer = 1;
+            if (   !config_load_player(config, &config->black, argv[i + 1])
+                || !config_load_player(config, &config->white, argv[i + 2])) {
                 return 0;
             }
             i += 2;

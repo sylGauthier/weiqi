@@ -13,6 +13,7 @@ int game_server_init(struct GameServer* srv,
 
     srv->ui = ui;
     srv->weiqi = weiqi;
+    if (config->randomPlayer) config_randomize_players(config);
     if (config->boardSize < 5 || config->boardSize > 25) {
         fprintf(stderr, "Error: invalid board size\n");
         return 0;
