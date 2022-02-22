@@ -11,6 +11,7 @@
 
 static void load_default_theme(struct InterfaceTheme* theme) {
     memset(theme, 0, sizeof(*theme));
+    strcpy(theme->name, "default");
     theme->style = W_UI_NICE;
     strcpy(theme->board.texture, "wood.png");
 
@@ -46,7 +47,9 @@ int config_load_defaults(struct Config* config) {
     config->white.type = W_HUMAN;
     config->mode = WQ_SERVER;
     config->numEngines = 0;
-    load_default_theme(&config->theme);
+    load_default_theme(&config->themes[0]);
+    config->numThemes = 1;
+    config->curTheme = 0;
     return 1;
 }
 
@@ -160,19 +163,37 @@ static int parse_lighting(struct InterfaceTheme* theme, json_t* jlight) {
     return 1;
 }
 
-static int parse_theme(struct Config* config, json_t* theme) {
+static int parse_theme(struct Config* config, json_t* jtheme) {
     json_t* cur;
+    struct InterfaceTheme* theme;
 
-    if ((cur = json_object_get(theme, "style"))) {
+    if (config->numThemes >= W_NUM_THEMES) {
+        fprintf(stderr, "Warning: max number of themes reached (%d)\n",
+                        W_NUM_THEMES);
+        return 1;
+    }
+    theme = &config->themes[config->numThemes];
+    load_default_theme(theme);
+    if (!(cur = json_object_get(jtheme, "name"))) {
+        fprintf(stderr, "Error: config: missing name in theme\n");
+        return 0;
+    } else if (!json_is_string(cur)) {
+        fprintf(stderr, "Error: config: theme name must be string\n");
+        return 0;
+    } else {
+        strncpy(theme->name, json_string_value(cur), sizeof(theme->name) - 1);
+        theme->name[sizeof(theme->name) - 1] = '\0';
+    }
+    if ((cur = json_object_get(jtheme, "style"))) {
         const char* style;
 
         if (!(style = json_string_value(cur))) {
             fprintf(stderr, "Error: config: 'style' must be a string\n");
             return 0;
         } else if (!strcmp(style, "pure")) {
-            config->theme.style = W_UI_PURE;
+            theme->style = W_UI_PURE;
         } else if (!strcmp(style, "nice")) {
-            config->theme.style = W_UI_NICE;
+            theme->style = W_UI_NICE;
 
         } else {
             fprintf(stderr, "Error: config: "
@@ -180,25 +201,26 @@ static int parse_theme(struct Config* config, json_t* theme) {
             return 0;
         }
     }
-    if ((cur = json_object_get(theme, "fov"))) {
+    if ((cur = json_object_get(jtheme, "fov"))) {
         if (!json_is_number(cur)) {
             fprintf(stderr, "Error: config: 'fov' must be a number\n");
             return 0;
         }
-        config->theme.fov = json_number_value(cur);
+        theme->fov = json_number_value(cur);
     }
-    if ((cur = json_object_get(theme, "black_stone"))) {
-        if (!parse_asset_theme(&config->theme.bStone, cur)) return 0;
+    if ((cur = json_object_get(jtheme, "black_stone"))) {
+        if (!parse_asset_theme(&theme->bStone, cur)) return 0;
     }
-    if ((cur = json_object_get(theme, "white_stone"))) {
-        if (!parse_asset_theme(&config->theme.wStone, cur)) return 0;
+    if ((cur = json_object_get(jtheme, "white_stone"))) {
+        if (!parse_asset_theme(&theme->wStone, cur)) return 0;
     }
-    if ((cur = json_object_get(theme, "board"))) {
-        if (!parse_asset_theme(&config->theme.board, cur)) return 0;
+    if ((cur = json_object_get(jtheme, "board"))) {
+        if (!parse_asset_theme(&theme->board, cur)) return 0;
     }
-    if ((cur = json_object_get(theme, "lighting"))) {
-        if (!parse_lighting(&config->theme, cur)) return 0;
+    if ((cur = json_object_get(jtheme, "lighting"))) {
+        if (!parse_lighting(theme, cur)) return 0;
     }
+    config->numThemes++;
     return 1;
 }
 
@@ -248,6 +270,17 @@ static int parse_players(struct Config* config, json_t* jplayers) {
     return 1;
 }
 
+static int find_theme(struct Config* config, const char* name) {
+    unsigned int i = 0;
+
+    for (i = 0; i < config->numThemes; i++) {
+        if (!strcmp(config->themes[i].name, name)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int parse_config(struct Config* config, json_t* root) {
     json_t* cur;
 
@@ -265,10 +298,32 @@ static int parse_config(struct Config* config, json_t* root) {
             }
         }
     }
-    if ((cur = json_object_get(root, "theme"))) {
-        if (!parse_theme(config, cur)) {
+    if ((cur = json_object_get(root, "themes"))) {
+        json_t* theme;
+        unsigned int i;
+
+        if (!json_is_array(cur)) {
+            fprintf(stderr, "Error: config: 'themes' should be an array\n");
             return 0;
         }
+        json_array_foreach(cur, i, theme) {
+            if (!parse_theme(config, theme)) {
+                return 0;
+            }
+        }
+    }
+    if ((cur = json_object_get(root, "default_theme"))) {
+        int t;
+        if (!json_is_string(cur)) {
+            fprintf(stderr, "Error: config: 'default_theme' must be string\n");
+            return 0;
+        }
+        if ((t = find_theme(config, json_string_value(cur))) < 0) {
+            fprintf(stderr, "Error: config: invalid theme: %s\n",
+                            json_string_value(cur));
+            return 0;
+        }
+        config->curTheme = t;
     }
     if ((cur = json_object_get(root, "players"))) {
         if (!parse_players(config, cur)) {
@@ -391,9 +446,9 @@ int config_parse_args(struct Config* config, unsigned int argc, char** argv) {
                 return 0;
             }
             if (!strcmp(argv[i + 1], "pure")) {
-                config->theme.style = W_UI_PURE;
+                config->themes[0].style = W_UI_PURE;
             } else if (!strcmp(argv[i + 1], "nice")) {
-                config->theme.style = W_UI_NICE;
+                config->themes[0].style = W_UI_NICE;
             } else {
                 print_help(argv[0]);
                 return 0;
@@ -404,28 +459,28 @@ int config_parse_args(struct Config* config, unsigned int argc, char** argv) {
                 print_help(argv[0]);
                 return 0;
             }
-            config->theme.fov = strtol(argv[i + 1], NULL, 10);
+            config->themes[0].fov = strtol(argv[i + 1], NULL, 10);
             i++;
         } else if (!strcmp(arg, "--texture")) {
             if (i == argc - 1) {
                 print_help(argv[0]);
                 return 0;
             }
-            strncpy(config->theme.board.texture, argv[i + 1],
-                    sizeof(config->theme.board.texture) - 1);
+            strncpy(config->themes[0].board.texture, argv[i + 1],
+                    sizeof(config->themes[0].board.texture) - 1);
             i++;
         } else if (!strcmp(arg, "--coordinates")) {
-            config->theme.coordinates = 1;
+            config->themes[0].coordinates = 1;
         } else if (!strcmp(arg, "--color")) {
             if (i + 3 >= argc) {
                 print_help(argv[0]);
                 return 0;
             }
-            SET_VEC3(config->theme.board.color,
+            SET_VEC3(config->themes[0].board.color,
                      strtof(argv[i + 1], NULL),
                      strtof(argv[i + 2], NULL),
                      strtof(argv[i + 3], NULL));
-            SET_VEC3(config->theme.board.color,
+            SET_VEC3(config->themes[0].board.color,
                      strtof(argv[i + 1], NULL),
                      strtof(argv[i + 2], NULL),
                      strtof(argv[i + 3], NULL));

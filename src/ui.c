@@ -136,6 +136,7 @@ static int update_cursor_pos(struct UI* ui, double x, double y) {
     Vec3 vec, pos, boardPos;
     Mat4 invView;
     float s = ui->weiqi->boardSize - 1;
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
 
     invert4m(invView, MAT_CONST_CAST(uip->camera.view));
     v[0] = - x * v[2] / uip->camera.projection[0][0];
@@ -153,8 +154,8 @@ static int update_cursor_pos(struct UI* ui, double x, double y) {
     /* plane[3] = -h; */
     if (!intersectlp(boardPos, pos, vec, plane)) return 0;
 
-    boardPos[0] = boardPos[0] / ui->config->theme.gridScale + 0.5;
-    boardPos[1] = boardPos[1] / ui->config->theme.gridScale + 0.5;
+    boardPos[0] = boardPos[0] / theme->gridScale + 0.5;
+    boardPos[1] = boardPos[1] / theme->gridScale + 0.5;
     if (       boardPos[0] >= 0. && boardPos[0] <= 1.
             && boardPos[1] >= 0. && boardPos[1] <= 1.) {
         uip->cursorPos[0] = (boardPos[0] + 1. / (2. * (float) s)) * s;
@@ -249,7 +250,7 @@ static void render_stones(struct UI* ui) {
     Mat3 invNormal, tmp;
     float s = ui->weiqi->boardSize;
     unsigned char row, col, size = ui->weiqi->boardSize;
-    struct InterfaceTheme* theme = &ui->config->theme;
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
 
     load_id4(model);
 
@@ -299,12 +300,13 @@ static void render_pointer(struct UI* ui) {
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
     unsigned char col = uip->cursorPos[0], row = uip->cursorPos[1];
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
 
     load_id4(m);
     load_id3(invNormal);
 
-    m[3][0] = ui->config->theme.gridScale * (col * (1. / (s - 1)) - 0.5);
-    m[3][1] = ui->config->theme.gridScale * (row * (1. / (s - 1)) - 0.5);
+    m[3][0] = theme->gridScale * (col * (1. / (s - 1)) - 0.5);
+    m[3][1] = theme->gridScale * (row * (1. / (s - 1)) - 0.5);
     m[3][2] = 0;
     m[2][2] = 1.;
 
@@ -322,7 +324,7 @@ static void render_lmvp(struct UI* ui) {
     Mat3 invNormal;
     float s = ui->weiqi->boardSize;
     unsigned char col, row;
-    struct InterfaceTheme* theme = &ui->config->theme;
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
 
     if (!ui->weiqi->history.last || ui->weiqi->history.last->action != W_PLAY) {
         return;
@@ -347,6 +349,7 @@ static void render_lmvp(struct UI* ui) {
 static int setup_camera(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     Vec3 t = {0, 0, 0};
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
 
     uip->camNode = NULL;
     uip->camOrientation = NULL;
@@ -363,9 +366,9 @@ static int setup_camera(struct UI* ui) {
             || !node_add_child(uip->camOrientation, uip->camNode)) {
         return 0;
     }
-    if (ui->config->theme.fov > 0.0) {
-        float tanFOV = tan(ui->config->theme.fov / 360. * M_PI);
-        t[2] = (0.5 / tanFOV + ui->config->theme.boardThickness / 2.);
+    if (theme->fov > 0.0) {
+        float tanFOV = tan(theme->fov / 360. * M_PI);
+        t[2] = (0.5 / tanFOV + theme->boardThickness / 2.);
     } else {
         t[2] = 1;
     }
@@ -385,15 +388,23 @@ static int setup_camera(struct UI* ui) {
 static void run_loop(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     char ok = 0;
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
 
-    if (ui->config->theme.gridScale == 0.) {
-        float s = ui->weiqi->boardSize;
-        ui->config->theme.gridScale = s / (s + 2);
+    if (theme->fov == 0.) {
+        camera_ortho_projection(1., 1., 0.1, 1000., uip->camera.projection);
+    } else {
+        camera_projection(1., theme->fov / 360. * 2 * M_PI, 0.001, 1000.,
+                          uip->camera.projection);
     }
 
-    ui->config->theme.stoneRadius = 1. / (2. * (float)(ui->weiqi->boardSize))
-                            * ui->config->theme.gridScale;
-    ui->config->theme.pointerSize = ui->config->theme.stoneRadius / 2.;
+    if (theme->gridScale == 0.) {
+        float s = ui->weiqi->boardSize;
+        theme->gridScale = s / (s + 2);
+    }
+
+    theme->stoneRadius = 1. / (2. * (float)(ui->weiqi->boardSize))
+                            * theme->gridScale;
+    theme->pointerSize = theme->stoneRadius / 2.;
     /* we're fancy and make a last move pointer that's both a golden rectangle
      * and fits perfectly into a stone
      */
@@ -401,13 +412,11 @@ static void run_loop(struct UI* ui) {
         float phi = (1. + sqrt(5.)) / 2.;
         float l = 0.6;
 
-        ui->config->theme.lmvph = l * ui->config->theme.stoneRadius;
-        ui->config->theme.lmvpw = phi * ui->config->theme.lmvph;
+        theme->lmvph = l * theme->stoneRadius;
+        theme->lmvpw = phi * theme->lmvph;
     }
 
-    if (!assets_load(&uip->assets,
-                     ui->weiqi->boardSize,
-                     &ui->config->theme)) {
+    if (!assets_load(&uip->assets, ui->weiqi->boardSize, theme)) {
         fprintf(stderr, "Error: can't load assets\n");
     } else if (!scene_init(&uip->scene, &uip->camera)) {
         fprintf(stderr, "Error: interface: can't init scene\n");
@@ -552,6 +561,25 @@ static void player_select(struct nk_context* nkctx, struct UI* ui) {
     }
 }
 
+static void theme_select(struct nk_context* nkctx, struct UI* ui) {
+    nk_label(nkctx, "Theme", NK_TEXT_ALIGN_LEFT);
+
+    if (nk_combo_begin_label(nkctx,
+                             ui->config->themes[ui->config->curTheme].name,
+                             nk_vec2(nk_widget_width(nkctx), 200))) {
+        int i;
+        nk_layout_row_dynamic(nkctx, 35, 1);
+        for (i = 0; i < ui->config->numThemes; i++) {
+            if (nk_combo_item_label(nkctx,
+                                    ui->config->themes[i].name,
+                                    NK_TEXT_LEFT)) {
+                ui->config->curTheme = i;
+            }
+        }
+        nk_combo_end(nkctx);
+    }
+}
+
 static void config_ui_update(struct nk_context* nkctx, struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     struct Viewer* viewer = uip->viewer;
@@ -582,11 +610,14 @@ static void config_ui_update(struct nk_context* nkctx, struct UI* ui) {
     nk_layout_row_dynamic(nkctx, 40, 2);
 
     player_select(nkctx, ui);
+
     nk_label(nkctx, "Board size", NK_TEXT_ALIGN_LEFT);
     nk_property_int(nkctx, "", 5, &ui->config->boardSize, 25, 1, 0.5);
 
     nk_label(nkctx, "Handicap", NK_TEXT_ALIGN_LEFT);
     nk_property_int(nkctx, "", 0, &ui->config->handicap, 9, 1, 0.5);
+
+    theme_select(nkctx, ui);
 
     nk_layout_row_dynamic(nkctx, 40, 1);
     if (nk_button_label(nkctx, "Start game")) {
@@ -647,16 +678,9 @@ error:
 static void* do_start_ui(void* data) {
     struct UI* ui = data;
     struct UIPrivate uip = {0};
-    struct InterfaceTheme* theme = &ui->config->theme;
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
 
     ui->private = &uip;
-
-    if (theme->fov == 0.) {
-        camera_ortho_projection(1., 1., 0.1, 1000., uip.camera.projection);
-    } else {
-        camera_projection(1., theme->fov / 360. * 2 * M_PI, 0.001, 1000.,
-                          uip.camera.projection);
-    }
 
     if (!(uip.viewer = viewer_new(640, 640, "weiqi"))) {
         fprintf(stderr, "Error: interface: can't create viewer\n");

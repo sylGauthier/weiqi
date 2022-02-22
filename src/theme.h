@@ -19,6 +19,7 @@ struct AssetParams {
 };
 
 struct InterfaceTheme {
+    char name[128];
     enum InterfaceStyle style;
     char iblPath[128];
     Vec3 backgroundColor;

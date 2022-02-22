@@ -5,6 +5,7 @@
 
 #define W_CONF_PATH_SIZE    512
 #define W_NUM_ENGINES       32
+#define W_NUM_THEMES        32
 
 enum PlayerType {
     W_HUMAN,
@@ -44,7 +45,8 @@ struct Config {
     struct Engine engines[W_NUM_ENGINES];
     unsigned int numEngines;
 
-    struct InterfaceTheme theme;
+    struct InterfaceTheme themes[W_NUM_THEMES];
+    unsigned int numThemes, curTheme;
 
     void* file;
 };
