@@ -20,7 +20,7 @@ static int human_get_move(struct Player* player,
         } else if (status == W_UI_CRASH) {
             fprintf(stderr, "Error: UI crashed\n");
             return W_ERROR;
-        } else if (*action == W_PASS) {
+        } else if (*action == W_PASS || *action == W_UNDO) {
             return W_NO_ERROR;
         } else if (weiqi_move_is_valid(player->weiqi, color, *row, *col)
                 != W_NO_ERROR) {

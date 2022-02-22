@@ -416,6 +416,10 @@ static void run_loop(struct UI* ui) {
     } else {
         uniform_buffer_bind(&uip->scene.camera, CAMERA_UBO_BINDING);
         uniform_buffer_bind(&uip->scene.lights, LIGHTS_UBO_BINDING);
+        uip->viewer->key_callback = key_callback;
+        uip->viewer->cursor_callback = cursor_callback;
+        uip->viewer->mouse_callback = mouse_callback;
+        uip->viewer->wheel_callback = wheel_callback;
         uip->viewer->resize_callback = resize_callback_run;
         while (ui->status == W_UI_RUN) {
             viewer_next_frame(uip->viewer);
@@ -439,6 +443,10 @@ static void run_loop(struct UI* ui) {
     scene_free(&uip->scene, NULL);
     free(uip->camNode);
     free(uip->camOrientation);
+    uip->viewer->key_callback = NULL;
+    uip->viewer->cursor_callback = NULL;
+    uip->viewer->mouse_callback = NULL;
+    uip->viewer->wheel_callback = NULL;
     uip->viewer->resize_callback = resize_callback_default;
 }
 
@@ -542,10 +550,6 @@ static void* do_start_ui(void* data) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
     } else {
         uip.viewer->callbackData = ui;
-        uip.viewer->key_callback = key_callback;
-        uip.viewer->cursor_callback = cursor_callback;
-        uip.viewer->mouse_callback = mouse_callback;
-        uip.viewer->wheel_callback = wheel_callback;
         uip.viewer->close_callback = close_callback;
         uip.viewer->resize_callback = resize_callback_default;
 

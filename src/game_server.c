@@ -44,7 +44,9 @@ static int undo(struct GameServer* srv) {
     return 0;
 }
 
-static int play_turn(struct GameServer* srv, enum WeiqiColor color) {
+static int play_turn(struct GameServer* srv,
+                     enum WeiqiColor color,
+                     enum MoveAction* a) {
     struct Player *p1, *p2;
     unsigned char row, col;
     enum MoveAction action = W_PLAY;
@@ -60,8 +62,10 @@ static int play_turn(struct GameServer* srv, enum WeiqiColor color) {
     if ((err = p1->get_move(p1, color, &action, &row, &col)) != W_NO_ERROR) {
         return err;
     }
+    *a = action;
     if (action == W_UNDO) {
-        if (undo(srv)) {
+        /* we undo 2 moves to get back to the same color's move */
+        if (undo(srv) && undo(srv)) {
             return W_NO_ERROR;
         } else {
             return W_UNDO_ERROR;
@@ -89,20 +93,21 @@ static int play_turn(struct GameServer* srv, enum WeiqiColor color) {
 
 int game_server_run(struct GameServer* srv) {
     enum WeiqiColor color;
+    enum MoveAction action;
 
     if (!srv->black.reset(&srv->black)) return 0;
     if (!srv->white.reset(&srv->white)) return 0;
 
     if (       srv->weiqi->history.last
             && srv->weiqi->history.last->color == W_BLACK
-            && play_turn(srv, W_WHITE) != W_NO_ERROR) {
+            && play_turn(srv, W_WHITE, &action) != W_NO_ERROR) {
         return 0;
     }
 
     color = W_BLACK;
     while (srv->ui->status != W_UI_QUIT && srv->ui->status != W_UI_CRASH) {
         enum WeiqiError err;
-        err = play_turn(srv, color);
+        err = play_turn(srv, color, &action);
         switch (err) {
             case W_ERROR:
                 return 0;
@@ -114,7 +119,9 @@ int game_server_run(struct GameServer* srv) {
                 fprintf(stderr, "Error: can't undo\n");
                 break;
             default:
-                color = color == W_WHITE ? W_BLACK : W_WHITE;
+                if (action != W_UNDO) {
+                    color = color == W_WHITE ? W_BLACK : W_WHITE;
+                }
                 break;
         }
     }
