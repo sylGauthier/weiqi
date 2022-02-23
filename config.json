@@ -1,0 +1,63 @@
+{
+    "engines": [
+        {
+            "name": "gnugo - easy",
+            "command": "/usr/bin/gnugo --level 1 --mode gtp --chinese-rules"
+        },
+        {
+            "name": "gnugo - medium",
+            "command": "/usr/bin/gnugo --level 5 --mode gtp --chinese-rules"
+        },
+        {
+            "name": "gnugo - hard",
+            "command": "/usr/bin/gnugo --level 10 --mode gtp --chinese-rules"
+        }
+    ],
+    "themes": [
+        {
+            "name":             "[3D] outdoor",
+            "style":            "nice",
+            "black_stone": {
+                "color":        [0.03, 0.03, 0.03],
+                "roughness":    0.6
+            },
+            "white_stone": {
+                "color":        [0.8, 0.8, 0.8],
+                "roughness":    0.45
+            },
+            "board": {
+                "texture":      "wood.png",
+                "color":        [0.6, 0.5, 0.4],
+                "roughness":    0.3
+            },
+            "lighting": {
+                "ibl":          "sky.hdr",
+                "sun_color":    [0, 0, 0],
+                "sun_direction":[0, 0, 0],
+                "ambient_color":[0, 0, 0],
+                "shadows":      "no",
+                "occlusion":    "yes"
+            }
+        },
+        {
+            "name":             "[2D] classic",
+            "style":            "pure",
+            "fov":              0,
+            "black_stone": {
+                "color":        [0.03, 0.03, 0.03]
+            },
+            "white_stone": {
+                "color":        [0.8, 0.8, 0.8]
+            },
+            "board": {
+                "texture":      "",
+                "color":        [0.6, 0.5, 0.4]
+            }
+        }
+    ],
+    "default_theme": "[3D] outdoor",
+
+    "players": {
+        "random": ["human", "gnugo - hard"]
+    }
+}
