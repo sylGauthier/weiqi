@@ -189,7 +189,7 @@ static void cursor_callback(struct Viewer* viewer, double xpos, double ypos,
 
     update_cursor_pos(ui, 2 * xpos / viewer->width - 1,
                       1. - 2 * ypos / viewer->height);
-    if (br) {
+    if (br && ui->config->themes[ui->config->curTheme].fov != 0) {
         node_rotate(uip->camOrientation, axisZ, -dx / viewer->width);
         node_slew(uip->camOrientation, axisX, -dy / viewer->width);
     }
@@ -202,12 +202,14 @@ static void wheel_callback(struct Viewer* viewer, double dx, double dy,
     struct UIPrivate* uip = ui->private;
     Vec3 t = {0, 0, 0};
 
-    if (dy < 0) {
-        t[2] = uip->camNode->position[2] * (1 - dy / 10.);
-    } else {
-        t[2] = uip->camNode->position[2] / (1 + dy / 10.);
+    if (ui->config->themes[ui->config->curTheme].fov != 0) {
+        if (dy < 0) {
+            t[2] = uip->camNode->position[2] * (1 - dy / 10.);
+        } else {
+            t[2] = uip->camNode->position[2] / (1 + dy / 10.);
+        }
+        node_set_pos(uip->camNode, t);
     }
-    node_set_pos(uip->camNode, t);
 }
 
 static void close_callback(struct Viewer* viewer, void* data) {
