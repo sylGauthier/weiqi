@@ -425,6 +425,16 @@ static void run_loop(struct UI* ui) {
     } else {
         uniform_buffer_bind(&uip->scene.camera, CAMERA_UBO_BINDING);
         uniform_buffer_bind(&uip->scene.lights, LIGHTS_UBO_BINDING);
+
+        /* IBL and lights don't like each other very much apparently, so only
+         * upload lights if IBL is not enabled.
+         */
+        if (!uip->assets.ibl.enabled) {
+            lights_buffer_object_update(&uip->scene.lights,
+                                        &uip->assets.lights);
+            uniform_buffer_send(&uip->scene.lights);
+        }
+
         uip->viewer->key_callback = key_callback;
         uip->viewer->cursor_callback = cursor_callback;
         uip->viewer->mouse_callback = mouse_callback;

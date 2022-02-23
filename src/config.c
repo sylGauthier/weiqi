@@ -16,6 +16,10 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     strcpy(theme->board.texture, "wood.png");
 
     SET_VEC3(theme->backgroundColor, 0.3, 0.3, 0.3);
+    SET_VEC3(theme->ambientColor, 3, 3, 3);
+    SET_VEC3(theme->sunDirection, -0.5, 0, -1);
+    SET_VEC3(theme->sunColor, 0.8, 0.8, 0.6);
+
     SET_VEC3(theme->bStone.color, 0, 0, 0);
     SET_VEC3(theme->wStone.color, 1, 1, 1);
     SET_VEC3(theme->pointer.color, 0, 0, 0);
@@ -159,6 +163,39 @@ static int parse_lighting(struct InterfaceTheme* theme, json_t* jlight) {
         strncpy(theme->iblPath,
                 json_string_value(cur),
                 sizeof(theme->iblPath) - 1);
+    }
+    if ((cur = json_object_get(jlight, "sun_color"))) {
+        if (       !json_is_array(cur)
+                || json_array_size(cur) != 3) {
+            fprintf(stderr, "Error: config: "
+                            "'sun_color' must be an array of 3 numbers\n");
+            return 0;
+        }
+        theme->sunColor[0] = json_number_value(json_array_get(cur, 0));
+        theme->sunColor[1] = json_number_value(json_array_get(cur, 1));
+        theme->sunColor[2] = json_number_value(json_array_get(cur, 2));
+    }
+    if ((cur = json_object_get(jlight, "sun_direction"))) {
+        if (       !json_is_array(cur)
+                || json_array_size(cur) != 3) {
+            fprintf(stderr, "Error: config: "
+                            "'sun_direction' must be an array of 3 numbers\n");
+            return 0;
+        }
+        theme->sunDirection[0] = json_number_value(json_array_get(cur, 0));
+        theme->sunDirection[1] = json_number_value(json_array_get(cur, 1));
+        theme->sunDirection[2] = json_number_value(json_array_get(cur, 2));
+    }
+    if ((cur = json_object_get(jlight, "ambient_color"))) {
+        if (       !json_is_array(cur)
+                || json_array_size(cur) != 3) {
+            fprintf(stderr, "Error: config: "
+                            "'ambient_color' must be an array of 3 numbers\n");
+            return 0;
+        }
+        theme->ambientColor[0] = json_number_value(json_array_get(cur, 0));
+        theme->ambientColor[1] = json_number_value(json_array_get(cur, 1));
+        theme->ambientColor[2] = json_number_value(json_array_get(cur, 2));
     }
     return 1;
 }

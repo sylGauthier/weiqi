@@ -49,6 +49,7 @@ static int load_lights(struct Assets* assets, struct InterfaceTheme* theme) {
 
     if (!light_init(&assets->lights)) return 0;
 
+    assets->lights.numDirectionalLights = 1;
     memcpy(dl->direction, theme->sunDirection, sizeof(Vec3));
     memcpy(dl->color, theme->sunColor, sizeof(Vec3));
     memcpy(a->color, theme->ambientColor, sizeof(Vec3));
