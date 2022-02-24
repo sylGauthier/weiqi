@@ -232,6 +232,7 @@ static void render_board(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     struct Node* board = uip->assets.board;
     struct Geometry* geom = board->data.geometry;
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
     Mat4 m;
     Mat3 invNormal;
 
@@ -239,6 +240,9 @@ static void render_board(struct UI* ui) {
     load_id3(invNormal);
     material_use(geom->material);
     material_set_matrices(geom->material, m, invNormal);
+    if (theme->shadow) {
+        material_bind_shadowmaps(geom->material, &uip->assets.lights);
+    }
     vertex_array_render(geom->vertexArray);
 }
 
@@ -293,6 +297,44 @@ static void render_stones(struct UI* ui) {
     }
     return;
 }
+
+static void render_shadowmap(struct UI* ui) {
+    struct UIPrivate* uip = ui->private;
+    struct Lights* l = &uip->assets.lights;
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
+    int id = 0, row, col, size = ui->weiqi->boardSize;
+    float s = ui->weiqi->boardSize;
+    GLint viewport[4];
+    struct Node *bStone = uip->assets.bStone, *wStone = uip->assets.wStone;
+
+    load_id4(bStone->model);
+    load_id4(wStone->model);
+    bStone->model[3][2] = theme->stoneThickness * theme->stoneRadius;
+    bStone->model[2][2] = theme->stoneThickness;
+    wStone->model[3][2] = theme->stoneThickness * theme->stoneRadius;
+    wStone->model[2][2] = theme->stoneThickness;
+
+    light_shadowmap_render_start(l, id, viewport);
+    for (row = 0; row < ui->weiqi->boardSize; row++) {
+        for (col = 0; col < ui->weiqi->boardSize; col++) {
+            if (ui->weiqi->board[row * size + col] == W_BLACK) {
+                bStone->model[3][0] = theme->gridScale
+                                    * (col * (1. / (s - 1)) - 0.5);
+                bStone->model[3][1] = theme->gridScale
+                                    * (row * (1. / (s - 1)) - 0.5);
+                light_shadowmap_render_node(bStone);
+            } else if (ui->weiqi->board[row * size + col] == W_WHITE) {
+                wStone->model[3][0] = theme->gridScale
+                                    * (col * (1. / (s - 1)) - 0.5);
+                wStone->model[3][1] = theme->gridScale
+                                    * (row * (1. / (s - 1)) - 0.5);
+                light_shadowmap_render_node(wStone);
+            }
+        }
+    }
+    light_shadowmap_render_end(l, viewport);
+}
+
 
 static void render_pointer(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
@@ -448,6 +490,12 @@ static void run_loop(struct UI* ui) {
 
             scene_update_nodes(&uip->scene, update_node, NULL);
             uniform_buffer_send(&uip->scene.camera);
+
+            if (theme->shadow) {
+                render_shadowmap(ui);
+                uniform_buffer_bind(&uip->scene.camera, CAMERA_UBO_BINDING);
+                uniform_buffer_bind(&uip->scene.lights, LIGHTS_UBO_BINDING);
+            }
             render_board(ui);
             render_stones(ui);
             render_pointer(ui);
@@ -458,7 +506,6 @@ static void run_loop(struct UI* ui) {
 
     if (!ok) {
         ui->status = W_UI_CRASH;
-        printf("set ui status to %d\n", W_UI_CRASH);
     }
     assets_free(&uip->assets);
     scene_free(&uip->scene, NULL);
@@ -618,7 +665,7 @@ static void config_ui_update(struct nk_context* nkctx, struct UI* ui) {
 
     nk_begin(nkctx, "Game configuration",
              nk_rect(viewer->width / 2 - w / 2, 100, w, h),
-             NK_WINDOW_TITLE | NK_WINDOW_BORDER);
+             NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR);
     nk_layout_row_dynamic(nkctx, 40, 2);
 
     player_select(nkctx, ui);

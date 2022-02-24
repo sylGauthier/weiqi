@@ -16,9 +16,11 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     strcpy(theme->board.texture, "wood.png");
 
     SET_VEC3(theme->backgroundColor, 0.3, 0.3, 0.3);
-    SET_VEC3(theme->ambientColor, 3, 3, 3);
-    SET_VEC3(theme->sunDirection, -0.5, 0, -1);
-    SET_VEC3(theme->sunColor, 0.8, 0.8, 0.6);
+    SET_VEC3(theme->ambientColor, 40, 40, 40);
+    SET_VEC3(theme->sunDirection, -0.5, 0.1, -0.8);
+    SET_VEC3(theme->sunColor, 0.5, 0.5, 0.5);
+    normalize3(theme->sunDirection);
+    theme->shadow = 1;
 
     SET_VEC3(theme->bStone.color, 0, 0, 0);
     SET_VEC3(theme->wStone.color, 1, 1, 1);

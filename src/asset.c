@@ -54,6 +54,24 @@ static int load_lights(struct Assets* assets, struct InterfaceTheme* theme) {
     memcpy(dl->color, theme->sunColor, sizeof(Vec3));
     memcpy(a->color, theme->ambientColor, sizeof(Vec3));
 
+    if (theme->shadow) {
+        struct ShadowMap* map;
+        Vec3 pos, lookAt = {0}, up = {0, 0, 1};
+        if ((dl->shadow = light_shadowmap_new(&assets->lights, 2048, 2048)) < 0) {
+            fprintf(stderr, "Error: assets: could not create shadowmap\n");
+            return 0;
+        }
+        map = &assets->lights.shadowMaps[dl->shadow];
+        camera_ortho_projection(1.2, 1.2, 4, 5.3, map->projection);
+
+        pos[0] = -dl->direction[0] * 2;
+        pos[1] = -dl->direction[1] * 2;
+        pos[2] = -dl->direction[2] * 2;
+        normalize3(pos);
+        scale3v(pos, 5.);
+        camera_look_at(pos, lookAt, up, map->view);
+    }
+
     return 1;
 }
 
@@ -126,6 +144,10 @@ int assets_load(struct Assets* assets,
     } else if (!load_lights(assets, theme)) {
         fprintf(stderr, "Error: assets_load: load_lights failed\n");
     } else {
+        if (!assets->ibl.enabled && theme->shadow) {
+            assets->bStone->hasShadow = 1;
+            assets->wStone->hasShadow = 1;
+        }
         return 1;
     }
     assets_free(assets);
