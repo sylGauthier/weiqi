@@ -34,6 +34,9 @@ struct UIPrivate {
     struct Assets assets;
     unsigned char cursorPos[2];
     char ok;
+    int lastMove;  /* keep track of number of stones last time we rendered
+                    * the shadow map, so we can render it only when needed
+                    */
 };
 
 static void update_node(struct Scene* scene, struct Node* n, void* data) {
@@ -298,6 +301,22 @@ static void render_stones(struct UI* ui) {
     return;
 }
 
+static int board_state_changed(struct UI* ui) {
+    struct UIPrivate* uip = ui->private;
+
+    if (ui->weiqi->history.last) {
+        if (uip->lastMove != ui->weiqi->history.last->nmove) {
+            uip->lastMove = ui->weiqi->history.last->nmove;
+            return 1;
+        }
+        return 0;
+    } else if (uip->lastMove != -1) {
+        uip->lastMove = -1;
+        return 1;
+    }
+    return 0;
+}
+
 static void render_shadowmap(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     struct Lights* l = &uip->assets.lights;
@@ -484,6 +503,11 @@ static void run_loop(struct UI* ui) {
         uip->viewer->mouse_callback = mouse_callback;
         uip->viewer->wheel_callback = wheel_callback;
         uip->viewer->resize_callback = resize_callback_run;
+
+        uip->lastMove = -2;  /* -2: we don't know anything about the board,
+                                -1: no move but we checked board state once,
+                                 0: 1 move that we checked, etc
+                              */
         while (ui->status == W_UI_RUN) {
             viewer_next_frame(uip->viewer);
             viewer_process_events(uip->viewer);
@@ -491,7 +515,7 @@ static void run_loop(struct UI* ui) {
             scene_update_nodes(&uip->scene, update_node, NULL);
             uniform_buffer_send(&uip->scene.camera);
 
-            if (theme->shadow) {
+            if (theme->shadow && board_state_changed(ui)) {
                 render_shadowmap(ui);
                 uniform_buffer_bind(&uip->scene.camera, CAMERA_UBO_BINDING);
                 uniform_buffer_bind(&uip->scene.lights, LIGHTS_UBO_BINDING);
