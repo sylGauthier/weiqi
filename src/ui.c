@@ -743,6 +743,7 @@ static void* do_start_ui(void* data) {
 
     if (!(uip.viewer = viewer_new(640, 640, "weiqi"))) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
+        ui->status = W_UI_CRASH;
     } else {
         uip.viewer->callbackData = ui;
         uip.viewer->close_callback = close_callback;
@@ -752,6 +753,7 @@ static void* do_start_ui(void* data) {
                      theme->backgroundColor[1],
                      theme->backgroundColor[2],
                      0);
+        ui->status = W_UI_IDLE;
         while (ui->status != W_UI_QUIT) {
             switch (ui->status) {
                 case W_UI_IDLE:
@@ -775,19 +777,37 @@ exit:
 
 /* following functions are to be called from the master thread */
 
+int ui_wait(struct UI* ui, enum UIStatus status) {
+    while (ui->status != status) {
+        struct timespec t;
+        t.tv_nsec = 10000000;
+        t.tv_sec = 0;
+        nanosleep(&t, NULL);
+        switch (ui->status) {
+            case W_UI_QUIT:
+                return W_QUIT;
+            case W_UI_CRASH:
+                return W_ERROR;
+            default:
+                break;
+        }
+    }
+    return W_NO_ERROR;
+}
+
 int ui_start(struct UI* ui, struct Weiqi* weiqi, struct Config* config) {
     memset(ui, 0, sizeof(*ui));
     ui->config = config;
     ui->weiqi = weiqi;
     ui->private = NULL;
-    ui->status = W_UI_IDLE;
+    ui->status = W_UI_STARTUP;
 
     if (pthread_create(&ui->thread, NULL, do_start_ui, ui) != 0) {
         fprintf(stderr, "Error: interface: couldn't start thread\n");
         return 0;
     }
 
-    return 1;
+    return ui_wait(ui, W_UI_IDLE);
 }
 
 int ui_stop(struct UI* ui) {
@@ -818,25 +838,6 @@ int ui_game_start(struct UI* ui) {
             break;
     }
     ui->status = W_UI_RUN;
-    return W_NO_ERROR;
-}
-
-int ui_wait(struct UI* ui, enum UIStatus status) {
-    while (ui->status != status) {
-        struct timespec t;
-        t.tv_nsec = 10000000;
-        t.tv_sec = 0;
-        nanosleep(&t, NULL);
-        
-        switch (ui->status) {
-            case W_UI_QUIT:
-                return W_QUIT;
-            case W_UI_CRASH:
-                return W_ERROR;
-            default:
-                break;
-        }
-    }
     return W_NO_ERROR;
 }
 

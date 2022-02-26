@@ -7,6 +7,7 @@
 #include "config.h"
 
 enum UIStatus {
+    W_UI_STARTUP,
     W_UI_RUN,
     W_UI_CONFIG,
     W_UI_IDLE,

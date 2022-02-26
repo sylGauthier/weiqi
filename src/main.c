@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
 
     if (       config_load_defaults(&config)
             && (confinit = config_load_config(&config))
-            && (uiinit = ui_start(&ui, &weiqi, &config))) {
+            && (uiinit = (ui_start(&ui, &weiqi, &config) == W_NO_ERROR))) {
         if (argc > 1 && !config_parse_args(&config, argc, argv)) {
             fprintf(stderr, "Error: can't parse args\n");
             ok = 0;
