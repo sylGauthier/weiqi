@@ -354,6 +354,31 @@ static void render_shadowmap(struct UI* ui) {
     light_shadowmap_render_end(l, viewport);
 }
 
+static void render_occlusion(struct UI* ui) {
+    struct UIPrivate* uip = ui->private;
+    struct Node* stoneOcc = uip->assets.stoneOcclusion;
+    struct Occlusion* occ = &uip->assets.occlusion;
+    struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
+    int row, col, size = ui->weiqi->boardSize;
+    float s = ui->weiqi->boardSize;
+    GLint viewport[4];
+    GLfloat bgColor[4];
+
+    load_id4(stoneOcc->model);
+    occlusion_render_start(occ, viewport, bgColor);
+    for (row = 0; row < size; row++) {
+        for (col = 0; col < size; col++) {
+            if (ui->weiqi->board[row * size + col] != W_EMPTY) {
+                stoneOcc->model[3][0] = 2 * theme->gridScale
+                                      * (col * (1. / (s - 1)) - 0.5);
+                stoneOcc->model[3][1] = 2 * theme->gridScale
+                                      * (row * (1. / (s - 1)) - 0.5);
+                node_render(stoneOcc);
+            }
+        }
+    }
+    occlusion_render_end(occ, viewport, bgColor);
+}
 
 static void render_pointer(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
@@ -513,13 +538,18 @@ static void run_loop(struct UI* ui) {
             viewer_process_events(uip->viewer);
 
             scene_update_nodes(&uip->scene, update_node, NULL);
-            uniform_buffer_send(&uip->scene.camera);
 
-            if (theme->shadow && board_state_changed(ui)) {
-                render_shadowmap(ui);
+            if (board_state_changed(ui)) {
+                if (theme->shadow) {
+                    render_shadowmap(ui);
+                }
+                if (theme->occlusion) {
+                    render_occlusion(ui);
+                }
                 uniform_buffer_bind(&uip->scene.camera, CAMERA_UBO_BINDING);
                 uniform_buffer_bind(&uip->scene.lights, LIGHTS_UBO_BINDING);
             }
+            uniform_buffer_send(&uip->scene.camera);
             render_board(ui);
             render_stones(ui);
             render_pointer(ui);

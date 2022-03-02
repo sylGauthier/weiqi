@@ -1,8 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
+#include <3dmr/render/texture.h>
 #include <3dmr/skybox.h>
+#include <3dmr/math/interp.h>
 #include <3dasset.h>
 
 #include "asset.h"
@@ -75,6 +78,47 @@ static int load_lights(struct Assets* assets, struct InterfaceTheme* theme) {
     return 1;
 }
 
+static int setup_occlusion(struct Assets* assets,
+                           struct InterfaceTheme* theme) {
+    if (!occlusion_init(&assets->occlusion, 1024, 1024)) {
+        fprintf(stderr, "Error: setup_occlusion: occlusion_init failed\n");
+    } else {
+        float texbuf[128 * 128] = {0};
+        unsigned int i, j;
+        GLuint tex;
+
+        for (i = 0; i < 128; i++) {
+            for (j = 0; j < 128; j++) {
+                float u = 2 * (float) j / 128. - 1.;
+                float v = 2 * (float) i / 128. - 1.;
+                float dist = sqrt(u * u + v * v);
+                float l = 2, o = 1;
+                texbuf[i * 128 + j] =
+                    1 - (cos(M_PI - clamp(M_PI * (l * dist - o), 0, M_PI)) + 1) / 2;
+            }
+        }
+        if (!(tex = texture_load_from_float_buffer(texbuf, 128, 128, 0, 0))) {
+            fprintf(stderr, "Error: setup_occlusion: "
+                            "texture_load_from_float_buffer failed\n");
+            return 0;
+        }
+        asset_mat_overlay_color(&assets->stoneOccMat, 0, 0, 0);
+        assets->stoneOccMat.params.solid.alpha.mode = ALPHA_BLEND;
+        material_param_set_float_texture(
+                &assets->stoneOccMat.params.solid.alpha.alpha, tex);
+
+        if (!(assets->stoneOcclusion = asset_quad(&assets->stoneOccMat,
+                                                  5 * theme->stoneRadius,
+                                                  5 * theme->stoneRadius))) {
+            fprintf(stderr, "Error: setup_occlusion: asset creation failed\n");
+            return 0;
+        }
+        assets->boardMat.params.pbr.occlusionMap = assets->occlusion.tex;
+        return 1;
+    }
+    return 0;
+}
+
 int assets_load(struct Assets* assets,
                 unsigned char boardSize,
                 struct InterfaceTheme* theme) {
@@ -125,6 +169,10 @@ int assets_load(struct Assets* assets,
             assets->wStoneMat.params.pbr.ibl = &assets->ibl;
             assets->boardMat.params.pbr.ibl = &assets->ibl;
         }
+        if (theme->occlusion && !setup_occlusion(assets, theme)) {
+            fprintf(stderr, "Error: setup_occlusion failed\n");
+            return 0;
+        }
     }
     if (       !(assets->board = asset_quad(&assets->boardMat, 1, 1))
             || !(assets->wStone = asset_icosphere(&assets->wStoneMat,
@@ -170,5 +218,9 @@ void assets_free(struct Assets* assets) {
     free_asset(assets->bStone);
     free_asset(assets->pointer);
     free_asset(assets->lmvPointer);
+    free_asset(assets->stoneOcclusion);
+    if (assets->occlusion.tex) {
+        occlusion_free(&assets->occlusion);
+    }
     return;
 }

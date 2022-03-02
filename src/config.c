@@ -21,6 +21,7 @@ static void load_default_theme(struct InterfaceTheme* theme) {
     SET_VEC3(theme->sunColor, 0.5, 0.5, 0.5);
     normalize3(theme->sunDirection);
     theme->shadow = 1;
+    theme->occlusion = 1;
 
     SET_VEC3(theme->bStone.color, 0, 0, 0);
     SET_VEC3(theme->wStone.color, 1, 1, 1);

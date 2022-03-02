@@ -24,7 +24,7 @@ struct InterfaceTheme {
     char iblPath[128];
     Vec3 backgroundColor;
     Vec3 ambientColor, sunDirection, sunColor;
-    char shadow;
+    char shadow, occlusion;
 
     struct AssetParams bStone;
     struct AssetParams wStone;

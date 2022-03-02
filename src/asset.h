@@ -5,6 +5,7 @@
 #include <3dmr/material/pbr.h>
 
 #include "theme.h"
+#include "occlusion.h"
 
 #define GRID_RES 1024
 
@@ -14,13 +15,16 @@ struct Assets {
     struct Node* bStone;
     struct Node* pointer;
     struct Node* lmvPointer;
+    struct Node* stoneOcclusion;
 
     struct MaterialConfig boardMat;
     struct MaterialConfig wStoneMat;
     struct MaterialConfig bStoneMat;
     struct MaterialConfig pointerMat;
     struct MaterialConfig lmvPointerMat;
+    struct MaterialConfig stoneOccMat;
 
+    struct Occlusion occlusion;
     struct Lights lights;
     struct IBL ibl;
 };
