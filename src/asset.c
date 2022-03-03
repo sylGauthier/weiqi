@@ -150,6 +150,11 @@ int assets_load(struct Assets* assets,
                                                   theme->bStone.color[1],
                                                   theme->bStone.color[2]);
         asset_mat_solid_texid(&assets->boardMat, gridTex);
+        /* just as a safeguard since other parts of the UI might use those
+         * values, and we are not going to load shadows and occlusion
+         */
+        theme->shadow = 0;
+        theme->occlusion = 0;
     } else if (theme->style == W_UI_NICE) {
         asset_mat_pbr_color(&assets->wStoneMat, theme->wStone.color[0],
                                                 theme->wStone.color[1],
