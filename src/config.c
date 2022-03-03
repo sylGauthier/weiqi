@@ -200,6 +200,20 @@ static int parse_lighting(struct InterfaceTheme* theme, json_t* jlight) {
         theme->ambientColor[1] = json_number_value(json_array_get(cur, 1));
         theme->ambientColor[2] = json_number_value(json_array_get(cur, 2));
     }
+    if ((cur = json_object_get(jlight, "shadows"))) {
+        if (!json_is_boolean(cur)) {
+            fprintf(stderr, "Error: config: 'shadow' must be a boolean\n");
+            return 0;
+        }
+        theme->shadow = json_boolean_value(cur);
+    }
+    if ((cur = json_object_get(jlight, "occlusion"))) {
+        if (!json_is_boolean(cur)) {
+            fprintf(stderr, "Error: config: 'occlusion' must be a boolean\n");
+            return 0;
+        }
+        theme->occlusion = json_boolean_value(cur);
+    }
     return 1;
 }
 
