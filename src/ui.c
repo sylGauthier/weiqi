@@ -718,7 +718,7 @@ static void config_ui_update(struct nk_context* nkctx, struct UI* ui) {
     nk_input_end(nkctx);
 
     nk_begin(nkctx, "Game configuration",
-             nk_rect(viewer->width / 2 - w / 2, 100, w, h),
+             nk_rect(10, viewer->height / 2 - h / 2, w, h),
              NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR);
     nk_layout_row_dynamic(nkctx, 40, 2);
 
@@ -739,13 +739,34 @@ static void config_ui_update(struct nk_context* nkctx, struct UI* ui) {
     nk_end(nkctx);
 }
 
+static void render_splash(struct Viewer* v, struct Node* splash) {
+    float margin = 410;
+    splash->model[0][0] = (float) v->height / (float) v->width;
+    splash->model[1][1] = 1;
+    splash->model[3][0] = ((float) v->width + margin) / (float) v->width - 1.;
+    node_render(splash);
+}
+
 static void config_loop(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     struct nk_context nkctx;
     struct nk_font_config cfg;
     const void* image;
     int w, h;
+    struct Node* splash;
+    struct MaterialConfig splashConf;
 
+    if (!asset_mat_overlay_texpath(&splashConf,
+                                   W_DATA_SRC "/textures/splash.png")) {
+        goto error;
+    }
+    splashConf.params.solid.alpha.mode = ALPHA_BLEND;
+    material_param_set_float_texture(&splashConf.params.solid.alpha.alpha,
+                                     splashConf.params.solid.color.value.texture);
+    if (!(splash = asset_quad(&splashConf, 2, 2))) {
+        fprintf(stderr, "Error: config_loop: can't create splash\n");
+        goto error;
+    }
     if (!tdnk_init(&uip->nkdev, uip->viewer)) goto error;
 
     cfg = nk_font_config(0);
@@ -773,12 +794,13 @@ static void config_loop(struct UI* ui) {
         viewer_process_events(uip->viewer);
         config_ui_update(&nkctx, ui);
 
-
+        render_splash(uip->viewer, splash);
         tdnk_render(&uip->nkdev,
                     &nkctx,
                     nk_vec2(1, 1),
                     NK_ANTI_ALIASING_ON);
     }
+    asset_free(splash);
     nk_font_atlas_clear(&uip->atlas);
     nk_free(&nkctx);
     tdnk_shutdown(&uip->nkdev);
