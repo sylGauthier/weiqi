@@ -1,6 +1,6 @@
 include config.mk
 
-DEPS := 3dmr lib3dasset lib3dnk jansson
+DEPS := 3dmr 3dasset 3dnk jansson
 
 DIR=$(if $(DESTDIR),$(DESTDIR)/)$(PREFIX)
 BIN_DIR=$(DIR)/$(or $(BINDIR),bin)
