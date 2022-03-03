@@ -725,10 +725,10 @@ static void config_ui_update(struct nk_context* nkctx, struct UI* ui) {
     player_select(nkctx, ui);
 
     nk_label(nkctx, "Board size", NK_TEXT_ALIGN_LEFT);
-    nk_property_int(nkctx, "", 5, &ui->config->boardSize, 25, 1, 0.5);
+    nk_property_int(nkctx, "#", 5, &ui->config->boardSize, 25, 1, 0.5);
 
     nk_label(nkctx, "Handicap", NK_TEXT_ALIGN_LEFT);
-    nk_property_int(nkctx, "", 0, &ui->config->handicap, 9, 1, 0.5);
+    nk_property_int(nkctx, "#", 0, &ui->config->handicap, 9, 1, 0.5);
 
     theme_select(nkctx, ui);
 
