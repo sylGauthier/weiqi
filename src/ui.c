@@ -222,6 +222,27 @@ static void close_callback(struct Viewer* viewer, void* data) {
     return;
 }
 
+static void do_nk_input(struct nk_context* nkctx, struct Viewer* viewer) {
+    nk_input_begin(nkctx);
+    nk_input_motion(nkctx, viewer->cursorPos[0], viewer->cursorPos[1]);
+    nk_input_button(nkctx,
+                    NK_BUTTON_LEFT,
+                    viewer->cursorPos[0],
+                    viewer->cursorPos[1],
+                    viewer->buttonPressed[0]);
+    nk_input_button(nkctx,
+                    NK_BUTTON_MIDDLE,
+                    viewer->cursorPos[0],
+                    viewer->cursorPos[1],
+                    viewer->buttonPressed[1]);
+    nk_input_button(nkctx,
+                    NK_BUTTON_RIGHT,
+                    viewer->cursorPos[0],
+                    viewer->cursorPos[1],
+                    viewer->buttonPressed[2]);
+    nk_input_end(nkctx);
+}
+
 static void idle_loop(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
 
@@ -477,6 +498,8 @@ static void run_loop(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     char ok = 0;
     struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
+    struct nk_context nkGameStatus;
+    int asseti = 0, scenei = 0, cami = 0, nki = 0;
 
     if (theme->fov == 0.) {
         camera_ortho_projection(1., 1., 0.1, 1000., uip->camera.projection);
@@ -504,12 +527,14 @@ static void run_loop(struct UI* ui) {
         theme->lmvpw = phi * theme->lmvph;
     }
 
-    if (!assets_load(&uip->assets, ui->weiqi->boardSize, theme)) {
+    if (!(asseti = assets_load(&uip->assets, ui->weiqi->boardSize, theme))) {
         fprintf(stderr, "Error: can't load assets\n");
-    } else if (!scene_init(&uip->scene, &uip->camera)) {
+    } else if (!(scenei = scene_init(&uip->scene, &uip->camera))) {
         fprintf(stderr, "Error: interface: can't init scene\n");
-    } else if (!setup_camera(ui)) {
+    } else if (!(cami = setup_camera(ui))) {
         fprintf(stderr, "Error: can't setup camera\n");
+    } else if (!(nki = nk_init_default(&nkGameStatus, &uip->font->handle))) {
+        fprintf(stderr, "Error: can't setup nk interface\n");
     } else {
         uniform_buffer_bind(&uip->scene.camera, CAMERA_UBO_BINDING);
         uniform_buffer_bind(&uip->scene.lights, LIGHTS_UBO_BINDING);
@@ -536,6 +561,7 @@ static void run_loop(struct UI* ui) {
         while (ui->status == W_UI_RUN) {
             viewer_next_frame(uip->viewer);
             viewer_process_events(uip->viewer);
+            do_nk_input(&nkGameStatus, uip->viewer);
 
             scene_update_nodes(&uip->scene, update_node, NULL);
 
@@ -561,10 +587,13 @@ static void run_loop(struct UI* ui) {
     if (!ok) {
         ui->status = W_UI_CRASH;
     }
-    assets_free(&uip->assets);
-    scene_free(&uip->scene, NULL);
-    free(uip->camNode);
-    free(uip->camOrientation);
+    if (nki) nk_free(&nkGameStatus);
+    if (asseti) assets_free(&uip->assets);
+    if (scenei) scene_free(&uip->scene, NULL);
+    if (cami) {
+        free(uip->camNode);
+        free(uip->camOrientation);
+    }
     uip->viewer->key_callback = NULL;
     uip->viewer->cursor_callback = NULL;
     uip->viewer->mouse_callback = NULL;
@@ -698,25 +727,6 @@ static void config_ui_update(struct nk_context* nkctx, struct UI* ui) {
     struct Viewer* viewer = uip->viewer;
     int w = 400, h = 600;
 
-    nk_input_begin(nkctx);
-    nk_input_motion(nkctx, viewer->cursorPos[0], viewer->cursorPos[1]);
-    nk_input_button(nkctx,
-                    NK_BUTTON_LEFT,
-                    viewer->cursorPos[0],
-                    viewer->cursorPos[1],
-                    viewer->buttonPressed[0]);
-    nk_input_button(nkctx,
-                    NK_BUTTON_MIDDLE,
-                    viewer->cursorPos[0],
-                    viewer->cursorPos[1],
-                    viewer->buttonPressed[1]);
-    nk_input_button(nkctx,
-                    NK_BUTTON_RIGHT,
-                    viewer->cursorPos[0],
-                    viewer->cursorPos[1],
-                    viewer->buttonPressed[2]);
-    nk_input_end(nkctx);
-
     nk_begin(nkctx, "Game configuration",
              nk_rect(10, viewer->height / 2 - h / 2, w, h),
              NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR);
@@ -750,9 +760,6 @@ static void render_splash(struct Viewer* v, struct Node* splash) {
 static void config_loop(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     struct nk_context nkctx;
-    struct nk_font_config cfg;
-    const void* image;
-    int w, h;
     struct Node* splash;
     struct MaterialConfig splashConf;
 
@@ -767,31 +774,11 @@ static void config_loop(struct UI* ui) {
         fprintf(stderr, "Error: config_loop: can't create splash\n");
         goto error;
     }
-    if (!tdnk_init(&uip->nkdev, uip->viewer)) goto error;
-
-    cfg = nk_font_config(0);
-    nk_font_atlas_init_default(&uip->atlas);
-    nk_font_atlas_begin(&uip->atlas);
-    if (!(uip->font = nk_font_atlas_add_from_file(&uip->atlas,
-                                                  W_DATA_SRC "/font.ttf",
-                                                  30.0f,
-                                                  &cfg))) {
-        fprintf(stderr, "Error: can't load font\n");
-        goto error;
-    } else if (!(image = nk_font_atlas_bake(&uip->atlas, &w, &h,
-                                            NK_FONT_ATLAS_RGBA32))) {
-        fprintf(stderr, "Error: can't bake font\n");
-        goto error;
-    }
-
-    tdnk_upload_atlas(&uip->nkdev, image, w, h);
-    nk_font_atlas_end(&uip->atlas,
-                      nk_handle_id((int)uip->nkdev.font_tex),
-                      &uip->nkdev.null);
     nk_init_default(&nkctx, &uip->font->handle);
     while (ui->status == W_UI_CONFIG) {
         viewer_next_frame(uip->viewer);
         viewer_process_events(uip->viewer);
+        do_nk_input(&nkctx, uip->viewer);
         config_ui_update(&nkctx, ui);
 
         render_splash(uip->viewer, splash);
@@ -801,26 +788,59 @@ static void config_loop(struct UI* ui) {
                     NK_ANTI_ALIASING_ON);
     }
     asset_free(splash);
-    nk_font_atlas_clear(&uip->atlas);
     nk_free(&nkctx);
-    tdnk_shutdown(&uip->nkdev);
     return;
 
 error:
     ui->status = W_UI_CRASH;
 }
 
+static int nkui_init(struct UIPrivate* uip) {
+    struct nk_font_config cfg;
+    const void* image;
+    int w, h;
+
+    if (!tdnk_init(&uip->nkdev, uip->viewer)) {
+        return 0;
+    }
+    cfg = nk_font_config(0);
+    nk_font_atlas_init_default(&uip->atlas);
+    nk_font_atlas_begin(&uip->atlas);
+    if (!(uip->font = nk_font_atlas_add_from_file(&uip->atlas,
+                                                  W_DATA_SRC "/font.ttf",
+                                                  30.0f,
+                                                  &cfg))) {
+        fprintf(stderr, "Error: can't load font\n");
+    } else if (!(image = nk_font_atlas_bake(&uip->atlas, &w, &h,
+                                            NK_FONT_ATLAS_RGBA32))) {
+        fprintf(stderr, "Error: can't bake font\n");
+    } else {
+        tdnk_upload_atlas(&uip->nkdev, image, w, h);
+        nk_font_atlas_end(&uip->atlas,
+                          nk_handle_id((int)uip->nkdev.font_tex),
+                          &uip->nkdev.null);
+        return 1;
+    }
+    tdnk_shutdown(&uip->nkdev);
+    return 0;
+}
+
 static void* do_start_ui(void* data) {
     struct UI* ui = data;
     struct UIPrivate uip = {0};
     struct InterfaceTheme* theme = &ui->config->themes[ui->config->curTheme];
+    int nkuiinit;
 
     ui->private = &uip;
 
     if (!(uip.viewer = viewer_new(640, 640, "weiqi"))) {
         fprintf(stderr, "Error: interface: can't create viewer\n");
         ui->status = W_UI_CRASH;
+    } else if (!(nkuiinit = nkui_init(&uip))) {
+        fprintf(stderr, "Error: interface: can't init Nuklear\n");
+        ui->status = W_UI_CRASH;
     } else {
+
         uip.viewer->callbackData = ui;
         uip.viewer->close_callback = close_callback;
         uip.viewer->resize_callback = resize_callback_default;
@@ -845,6 +865,10 @@ static void* do_start_ui(void* data) {
                     goto exit;
             }
         }
+    }
+    if (nkuiinit) {
+        nk_font_atlas_clear(&uip.atlas);
+        tdnk_shutdown(&uip.nkdev);
     }
     viewer_free(uip.viewer);
 exit:
