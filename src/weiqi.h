@@ -63,4 +63,13 @@ int weiqi_register_move(struct Weiqi* weiqi,
                         unsigned char row, unsigned char col);
 
 void weiqi_undo_move(struct Weiqi* weiqi);
+
+int weiqi_move_to_str(char dest[3],
+                      enum MoveAction action,
+                      unsigned char row,
+                      unsigned char col);
+int weiqi_str_to_move(enum MoveAction* action,
+                      unsigned char* row,
+                      unsigned char* col,
+                      const char* str);
 #endif

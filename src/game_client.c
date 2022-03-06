@@ -128,12 +128,10 @@ static int client_play(struct GameClient* c, const char* color,
     enum WeiqiColor wcol;
     enum MoveAction action;
     unsigned char row, col;
-    char pass;
 
     if (!strcmp(color, "white")) wcol = W_WHITE;
     else wcol = W_BLACK;
-    str_to_move(&row, &col, &pass, move);
-    action = pass ? W_PASS : W_PLAY;
+    weiqi_str_to_move(&action, &row, &col, move);
 
     if (weiqi_register_move(c->weiqi, wcol, action, row, col) != W_NO_ERROR) {
         fprintf(stderr, "Error: we received an invalid move\n");
@@ -165,8 +163,7 @@ static int client_genmove(struct GameClient* c, const char* color) {
     err = weiqi_register_move(c->weiqi, wcol, action, row, col);
     if (err != W_NO_ERROR) return err;
 
-    if (action == W_PASS) strcpy(move, "PASS");
-    else move_to_str(move, row, col);
+    if (!weiqi_move_to_str(move, action, row, col)) return W_ERROR;
 
     fprintf(c->out, "= %s\n\n", move);
     fflush(c->out);

@@ -125,8 +125,7 @@ static int gtp_send_move(struct Player* player,
     char move[5] = {0};
     struct GTPConnection* c = player->data;
 
-    if (action == W_PASS) sprintf(move, "PASS");
-    else if (!move_to_str(move, row, col)) return W_FORMAT_ERROR;
+    if (!weiqi_move_to_str(move, action, row, col)) return W_FORMAT_ERROR;
     sprintf(msg, "play %s %s\n", color == W_WHITE ? "white" : "black", move);
     write_str(c->out, msg);
     if (!gtp_is_happy(c->in)) return W_ILLEGAL_MOVE;
@@ -136,7 +135,7 @@ static int gtp_send_move(struct Player* player,
 static int gtp_get_move(struct Player* player,
                  enum WeiqiColor color, enum MoveAction* action,
                  unsigned char* row, unsigned char* col) {
-    char ans[2048], pass;
+    char ans[2048];
     struct GTPConnection* c = player->data;
     sprintf(msg, "genmove %s\n", color == W_WHITE ? "white" : "black");
     write_str(c->out, msg);
@@ -145,11 +144,10 @@ static int gtp_get_move(struct Player* player,
         fprintf(stderr, "Error: gtp: genmove returned error: %s\n", ans);
         return W_ERROR;
     }
-    if (!str_to_move(row, col, &pass, ans + 2)) {
+    if (!weiqi_str_to_move(action, row, col, ans + 2)) {
         fprintf(stderr, "Error: format error from gtp client: %s\n", ans + 2);
         return W_ERROR;
     }
-    if (pass) *action = W_PASS;
     return W_NO_ERROR;
 }
 
