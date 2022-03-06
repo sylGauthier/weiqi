@@ -494,6 +494,48 @@ static int setup_camera(struct UI* ui) {
     return 1;
 }
 
+static void render_status(struct nk_context* nkctx, struct UI* ui) {
+    struct UIPrivate* uip = ui->private;
+    struct Viewer* viewer = uip->viewer;
+    struct Weiqi* wq = ui->weiqi;
+    int w = 600, h = 40;
+
+    if (viewer->cursorPos[1] < 10) {
+        char moveLbl[32];
+        char capLbl[32];
+
+        nk_begin(nkctx, "status",
+                 nk_rect(viewer->width / 2 - w / 2, 0, w, h),
+                 NK_WINDOW_NO_SCROLLBAR);
+        nk_layout_row_dynamic(nkctx, 40, 3);
+        if (wq->history.last) {
+            char mv[8];
+            weiqi_move_to_str(mv, wq->history.last->action,
+                                  wq->history.last->row,
+                                  wq->history.last->col);
+            sprintf(moveLbl, "Last move: %s", mv);
+        } else {
+            strcpy(moveLbl, "First move");
+        }
+        nk_label(nkctx, moveLbl, NK_TEXT_ALIGN_LEFT);
+        sprintf(capLbl, "W: %d | B: %d", wq->bcap, wq->wcap);
+        nk_label(nkctx, capLbl, NK_TEXT_ALIGN_CENTERED);
+        if (wq->history.last && wq->history.last->color == W_BLACK) {
+            nk_label(nkctx, "White to play", NK_TEXT_ALIGN_RIGHT);
+        } else if (!wq->gameOver) {
+            nk_label(nkctx, "Black to play", NK_TEXT_ALIGN_RIGHT);
+        } else {
+            nk_label(nkctx, "Game over", NK_TEXT_ALIGN_RIGHT);
+        }
+        nk_end(nkctx);
+    } else {
+        nk_begin(nkctx, "status",
+                 nk_rect(viewer->width / 2 - w / 2, 0, w, h / 5),
+                 NK_WINDOW_NO_SCROLLBAR);
+        nk_end(nkctx);
+    }
+}
+
 static void run_loop(struct UI* ui) {
     struct UIPrivate* uip = ui->private;
     char ok = 0;
@@ -580,6 +622,11 @@ static void run_loop(struct UI* ui) {
             render_stones(ui);
             render_pointer(ui);
             render_lmvp(ui);
+            render_status(&nkGameStatus, ui);
+            tdnk_render(&uip->nkdev,
+                        &nkGameStatus,
+                        nk_vec2(1, 1),
+                        NK_ANTI_ALIASING_ON);
         }
         if (ui->status == W_UI_QUIT) ok = 1;
     }
