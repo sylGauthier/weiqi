@@ -11,10 +11,17 @@ You can also play over IRC with [qirc](https://pedantic.software/git/qirc/about)
 which allows you to use any IRC channel as a game lobby to publish/join/play
 games using `weiqi`.
 
+![screenshot](https://pedantic.software/syg/files/weiqi/screenshots/ui.png)
 ![screenshot](https://pedantic.software/syg/files/weiqi/screenshots/5.png)
 ![screenshot](https://pedantic.software/syg/files/weiqi/screenshots/6.png)
 
 ## Install
+
+`weiqi` is still a work in progress, with only one contributor occasionally
+working on it during his free time. There is no proper build yet but there will
+be in the near future when I am satisfied with the program.
+
+So for now, the only way to use it is to build it from source.
 
 ### Dependencies
 
@@ -22,24 +29,17 @@ games using `weiqi`.
 - `glew`
 - `glfw3`
 - `libpng`
-- [3dmr](https://pedantic.software/projects/3dmr.html), our homemade 3D
-  renderer.
+- `jansson`
+- [3dmr](https://github.com/sylGauthier/3dmr)
+- [3dasset](https://github.com/sylGauthier/3dasset)
+- [3dnk](https://github.com/sylGauthier/3dnk)
 
 ### Build
 
-To install `3dmr`:
+Once you have installed the dependencies, to install `weiqi`:
 
 ```
-git clone https://pedantic.software/git/3dmr
-cd 3dmr
-git checkout syg/gltf
-sudo make install PREFIX=/usr GLTF=1
-```
-
-Then, to install `weiqi`:
-
-```
-git clone https://pedantic.software/git/weiqi
+git clone https://github.com/sylGauthier/weiqi
 cd weiqi
 sudo make install
 ```
@@ -54,19 +54,16 @@ engine that also supports GTP, although it wasn't tested with `weiqi`.
 
 ### Configuring engines
 
-When installing `weiqi`, if you already have `gnugo` installed, the build system
-will detect it and configure it automatically. Otherwise, or if you wish to add
-another engine, edit `weiqi`'s config file located in `$HOME/.weiqi`, and add
-the following line (for `gnugo`):
-
-```
-engine gnugo "/usr/bin/gnugo --mode gtp" # or whatever the path to the executable is
-```
-
-You can add other engines the same way, look up their documentation on how to
-get them to use the GTP protocol.
+The default JSON configuration is already set up to play against `gnugo` in 3
+different modes of difficulty. If you wish to add more engines, you can edit the
+config file in `~/.config/weiqi/config.json`, look at how `gnugo` is declared
+and add more engines the same way. They will show up in the start-up menu.
 
 ### Play
+
+Launching `weiqi` without any arguments will open the start-up menu which is
+pretty self-explanatory. However, you can jump straight into a game by using
+command line arguments as follow.
 
 #### Against an engine
 
@@ -111,29 +108,9 @@ the `HOME` key.
 
 ## Configure the interface
 
-`weiqi` looks for a configuration file in `$HOME/.weiqi` or assume defaults if
-none is found.
+`weiqi` looks for a configuration file in `$HOME/.config/weiqi/config.json` or
+assume defaults if none is found.
 
 The configuration file allows you to customize the look of the board, by setting
 the shader used, the board texture, the image used for image-based lighting and
 so on, as well as the default game mode, player assignation and board size.
-
-Look up the examples in the `configs` folder. Here are screenshots of what they
-correspond to:
-
-`configs/fancy`
-
-![fancy](https://pedantic.software/syg/files/weiqi/1.png)
-
-`configs/fancy-direct-lighting`
-
-![fancy](https://pedantic.software/syg/files/weiqi/3.png)
-
-`configs/minimal`
-
-![fancy](https://pedantic.software/syg/files/weiqi/2.png)
-
-## More info
-
-The man page details all configuration and command line options extensively:
-`man weiqi`.

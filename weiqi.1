@@ -109,73 +109,9 @@ backend.
 
 .SH CONFIG
 .B weiqi
-looks for a configuration file
-.I $HOME/.weiqi
-and will assume defaults if none is found. An option is essentially a command
-and its arguments separated by spaces. The different commands are:
-
-.TP
-.BI "engine " "\fR<\fPname\fR>\fP \fR<\fPcommand\fR>\fP"
-Declares the engine with the name
-.I name
-and the command to start it. The command must be enclosed in "double quotes" if
-it contains spaces/arguments.
-
-.TP
-.BI "stone " "white\fR|\fPblack color\fR|\fProughness\fR|\fPmetalness \fR<\fPvalues\fR>\fP"
-Sets the material parameters of black and white stones. Roughness and metalness
-are only relevant when using the
-.I nice
-interface, and take one float between 0 and 1. The color option takes 3 floats
-between 0 and 1, respectively red, green and blue.
-
-.TP
-.BI "board " "color\fR|\fProughness\fR|\fPmetalness\fR|\fPtexture \fR<\fPvalues\fR>\fP"
-Sets the material parameters for the board. color, roughness and metalness are
-similar as above, texture takes a string for the filename of the texture.
-
-.TP
-.BI "board " "size\fR|\fPhandicap \fR<\fPvalue\fR>\fP"
-Sets the size (as in the number of vertices on each side of the grid) and the
-handicap value.  Size should generally be between 5 and 25, handicap between 0
-and 9.
-
-.TP
-.BI "board " "coordinates on\fR|\fPoff"
-Display or not the coordinates on the board, with letters on the X axis and
-numbers on the Y axis.
-
-.TP
-.BI "player " "white\fR|\fPblack human\fR|<\fPengine_name\fR>\fP"
-Assigns a player to the specified color. See above the
-.I \-\-player
-option.
-
-.TP
-.BI "player " "random human\fR|<\fPengine_name\fR>\fP human\fR|<\fPengine_name\fR>\fP"
-Randomly assigns the two specified players to white and black.
-
-.TP
-.BI "lighting " "ibl none\fR|<\fPIBL file\fR>\fP"
-Sets IBL (image based lighting) file (for now there is only "sky.hdr" available
-but you can add more in the textures folder).
-.B none
-disables IBL. Note that IBL requires a fair bit of resources and will most
-likely be slow on older hardware.
-
-.TP
-.BI "interface " "shading pbr\fR|\fPsolid"
-Sets the shading mode. pbr (physic based rendering) is the one used in the
-"nice" mode, solid is the basic and resource friendly one.
-
-.TP
-.BI "interface " "fov \fR<\fPfov\fR>\fP"
-Sets the field of view. 0 means orthographic projection, which is what you want
-if you want a 2D-looking board.
-
-.TP
-.BI "interface " "background \fR<\fPr\fR>\fP \fR<\fPg\fR>\fP \fR<\fPb\fR>\fP"
-Sets the background color. r, g and b are floats between 0 and 1.
+looks for a JSON configuration file
+.I $HOME/.config/weiqi/config.json
+and will assume defaults if none is found.
 
 .SH USAGE
 .TP
@@ -222,7 +158,7 @@ Start a client connecting to the previous server and a human backend:
 
 .SH FILES
 .TP
-.I $HOME/.weiqi
+.I $HOME/.config/weiqi/config.json
 The configuration file. See
 .I CONFIG
 for configuration details.
