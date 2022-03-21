@@ -46,7 +46,9 @@ install: weiqi $(TEXFILES) $(FONTFILES)
 	cp $(TEXFILES) $(TEXTURE_DIR)
 	cp $(FONTFILES) $(DATA_DIR)
 	cp weiqi.1 $(MAN_DIR)
-	if [ ! -f ~/.weiqi ] ; then \
-		touch ~/.weiqi ; \
-		command -v gnugo && echo engine gnugo \"`which gnugo` --mode gtp\" >> ~/.weiqi ; \
+	if [ ! -d ~/.config/weiqi ] ; then \
+		mkdir -p ~/.config/weiqi ; \
+	fi
+	if [ ! -f ~/.config/weiqi/config.json ] ; then \
+		cp ./config.json ~/.config/weiqi/config.json ; \
 	fi
