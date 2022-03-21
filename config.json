@@ -26,7 +26,7 @@
                 "roughness":    0.45
             },
             "board": {
-                "texture":      "wood.png",
+                "texture":      "wood3.png",
                 "color":        [0.6, 0.5, 0.4],
                 "roughness":    0.3
             },
@@ -35,8 +35,8 @@
                 "sun_color":    [0, 0, 0],
                 "sun_direction":[0, 0, 0],
                 "ambient_color":[0, 0, 0],
-                "shadows":      "no",
-                "occlusion":    "yes"
+                "shadows":      false,
+                "occlusion":    true
             }
         },
         {
