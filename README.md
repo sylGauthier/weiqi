@@ -11,7 +11,8 @@ You can also play over IRC with [qirc](https://pedantic.software/git/qirc/about)
 which allows you to use any IRC channel as a game lobby to publish/join/play
 games using `weiqi`.
 
-![screenshot](https://pedantic.software/syg/files/weiqi/4.png)
+![screenshot](https://pedantic.software/syg/files/weiqi/screenshots/5.png)
+![screenshot](https://pedantic.software/syg/files/weiqi/screenshots/6.png)
 
 ## Install
 
