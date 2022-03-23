@@ -418,7 +418,12 @@ int config_load_config(struct Config* config) {
     json_error_t error;
     int ok = 0;
 
+#ifndef W_CONFIG_DIR
     if (!get_conf_path(config->confpath, W_CONF_PATH_SIZE)) return 0;
+#else
+    strncpy(config->confpath, W_CONFIG_DIR, W_CONF_PATH_SIZE - 1);
+#endif
+    fprintf(stderr, "Info: loading config from %s\n", config->confpath);
     if (!(f = fopen(config->confpath, "r"))) {
         fprintf(stderr, "Warning: "
                         "can't open config file: %s, assuming defaults\n",

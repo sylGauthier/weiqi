@@ -1,3 +1,5 @@
 weiqi
 *.o
 data
+weiqi-*
+weiqi.tar.gz

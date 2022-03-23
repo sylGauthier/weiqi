@@ -2,25 +2,31 @@ include config.mk
 
 DEPS := 3dmr 3dasset 3dnk jansson
 
-DIR=$(if $(DESTDIR),$(DESTDIR)/)$(PREFIX)
-BIN_DIR=$(DIR)/$(or $(BINDIR),bin)
-MAN_DIR=$(DIR)/share/man/man1
-DATA_DIR=$(DIR)/share/weiqi
-TEXTURE_DIR=$(DATA_DIR)/textures
+ifneq ($(RELEASE),)
+	CFLAGS	+= $(shell pkg-config --cflags-only-I $(DEPS)) -I. -DTDMR_SHADERS_PATH=\"./shaders/\" -DTDMR_GLTF=1
+	CFLAGS	+= -march=x86-64
+	LDFLAGS	+= $(shell pkg-config --libs-only-L $(DEPS)) -l:lib3dasset.a -l:lib3dnk.a -l:lib3dmr.a -l:libjpeg.a -l:libjansson.a -l:libpng16.a -l:libGLEW.a -l:libGLU.a -l:libz.a -lm -lglfw -lGL -lX11 -lpthread
+else
+	CFLAGS	+= $(shell pkg-config --cflags $(DEPS)) -I.
+	LDFLAGS	+= $(shell pkg-config --libs $(DEPS)) -lm -lpthread
+endif
 
-DATA_SRC=data
-TEXTURE_SRC=$(DATA_SRC)/textures
+DIR			 = $(if $(DESTDIR),$(DESTDIR)/)$(PREFIX)
+BIN_DIR		 = $(DIR)/$(or $(BINDIR),bin)
+MAN_DIR 	 = $(DIR)/share/man/man1
+DATA_DIR	?= $(DIR)/share/weiqi
+TEXTURE_DIR	 = $(DATA_DIR)/textures
 
-CFLAGS += $(shell pkg-config --cflags $(DEPS)) -I.
-LDFLAGS += $(shell pkg-config --libs $(DEPS)) -lm -lpthread
+DATA_SRC	 = data
+TEXTURE_SRC	 = $(DATA_SRC)/textures
 
-CFLAGS += -DW_DATA_DIR=\"$(DATA_DIR)\" -DW_DATA_SRC=\"$(DATA_SRC)\"
+CFLAGS += $(if $(CONFIG_DIR),-DW_CONFIG_DIR=\"$(CONFIG_DIR)\") -DW_DATA_DIR=\"$(DATA_DIR)\"
 CFLAGS += $(if $(COORDINATES),-DW_COORDINATES)
 
-OBJECTS := $(patsubst %.c,%.o,$(wildcard src/*.c))
-TEXTURES := wood.png wood2.png wood3.png sky.hdr
-TEXFILES := $(addprefix $(TEXTURE_SRC)/, $(TEXTURES))
-FONTFILES := $(DATA_SRC)/font.ttf
+OBJECTS		:= $(patsubst %.c,%.o,$(wildcard src/*.c))
+TEXTURES	:= wood.png wood2.png wood3.png sky.hdr
+TEXFILES	:= $(addprefix $(TEXTURE_SRC)/, $(TEXTURES))
+FONTFILES	:= $(DATA_SRC)/font.ttf
 
 .PHONY: all install
 all: weiqi $(TEXFILES) $(FONTFILES)

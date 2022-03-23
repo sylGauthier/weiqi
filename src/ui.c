@@ -14,6 +14,7 @@
 #include <3dmr/render/camera_buffer_object.h>
 #include <3dmr/render/lights_buffer_object.h>
 #include <3dmr/render/shader.h>
+#include <3dmr/shaders.h>
 
 #include "ui.h"
 #include "asset.h"
@@ -811,7 +812,7 @@ static void config_loop(struct UI* ui) {
     struct MaterialConfig splashConf;
 
     if (!asset_mat_overlay_texpath(&splashConf,
-                                   W_DATA_SRC "/textures/splash.png")) {
+                                   W_DATA_DIR "/textures/splash.png")) {
         goto error;
     }
     splashConf.params.solid.alpha.mode = ALPHA_BLEND;
@@ -854,7 +855,7 @@ static int nkui_init(struct UIPrivate* uip) {
     nk_font_atlas_init_default(&uip->atlas);
     nk_font_atlas_begin(&uip->atlas);
     if (!(uip->font = nk_font_atlas_add_from_file(&uip->atlas,
-                                                  W_DATA_SRC "/font.ttf",
+                                                  W_DATA_DIR "/font.ttf",
                                                   30.0f,
                                                   &cfg))) {
         fprintf(stderr, "Error: can't load font\n");
@@ -879,6 +880,9 @@ static void* do_start_ui(void* data) {
     int nkuiinit;
 
     ui->private = &uip;
+#ifdef TDMR_SHADERS_PATH
+    tdmrShaderRootPath = TDMR_SHADERS_PATH;
+#endif
 
     if (!(uip.viewer = viewer_new(640, 640, "weiqi"))) {
         fprintf(stderr, "Error: interface: can't create viewer\n");

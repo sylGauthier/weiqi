@@ -134,8 +134,7 @@ static int draw_coordinates(unsigned char* buf, unsigned int size,
     struct Character *letters = NULL, *numbers = NULL;
     size_t numLetters, numNumbers;
 
-    if (       !load_font(&ttf, W_DATA_DIR"/", theme->font)
-            && !load_font(&ttf, W_DATA_SRC"/", theme->font)) {
+    if (!load_font(&ttf, W_DATA_DIR"/", theme->font)) {
         fprintf(stderr, "Error: can't load font: %s\n", theme->font);
         return 0;
     }
@@ -244,12 +243,7 @@ GLuint grid_gen(unsigned char boardSize, struct InterfaceTheme* theme) {
     GLuint tex = 0;
 
     if (strlen(theme->board.texture)) {
-        if (       !load_tex(W_DATA_DIR"/textures/",
-                             theme->board.texture,
-                             &texBuf)
-                && !load_tex(W_DATA_SRC"/textures/",
-                             theme->board.texture,
-                             &texBuf)) {
+        if (!load_tex(W_DATA_DIR"/textures/", theme->board.texture, &texBuf)) {
             return 0;
         }
     } else {

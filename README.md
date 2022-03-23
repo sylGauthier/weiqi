@@ -15,13 +15,15 @@ games using `weiqi`.
 ![screenshot](https://pedantic.software/syg/files/weiqi/screenshots/5.png)
 ![screenshot](https://pedantic.software/syg/files/weiqi/screenshots/6.png)
 
-## Install
+## Release builds
 
-`weiqi` is still a work in progress, with only one contributor occasionally
-working on it during his free time. There is no proper build yet but there will
-be in the near future when I am satisfied with the program.
+You can get the latest static build here:
 
-So for now, the only way to use it is to build it from source.
+- [linux 64](https://pedantic.software/syg/files/weiqi/weiqi.tar.gz)
+
+Only linux is supported for now. Requires openGL >= 3.1 and GLFW3.
+
+## Build it yourself
 
 ### Dependencies
 

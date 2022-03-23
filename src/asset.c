@@ -25,13 +25,11 @@ static char* strmerge(const char* s1, const char* s2) {
 static int load_ibl(struct Assets* assets, struct InterfaceTheme* theme) {
     if (theme->style == W_UI_NICE && strlen(theme->iblPath)) {
         GLuint tex;
-        char *path1 = NULL, *path2 = NULL, ok = 0;
+        char *path = NULL, ok = 0;
 
-        if (       !(path1 = strmerge(W_DATA_DIR"/textures/", theme->iblPath))
-                || !(path2 = strmerge(W_DATA_SRC"/textures/", theme->iblPath))) {
+        if (!(path = strmerge(W_DATA_DIR"/textures/", theme->iblPath))) {
             fprintf(stderr, "Error: lighting: can't merge strings\n");
-        } else if (!(tex = skybox_load_texture_hdr_equirect(path1, 1024))
-                && !(tex = skybox_load_texture_hdr_equirect(path2, 1024))) {
+        } else if (!(tex = skybox_load_texture_hdr_equirect(path, 1024))) {
             fprintf(stderr, "Error: lighting: can't load IBL texture\n");
         } else {
             ok = compute_ibl(tex, 32, 1024, 5, 256, &assets->ibl);
@@ -39,8 +37,7 @@ static int load_ibl(struct Assets* assets, struct InterfaceTheme* theme) {
                 assets->ibl.enabled = 1;
             }
         }
-        free(path1);
-        free(path2);
+        free(path);
         return ok;
     }
     return 1;
