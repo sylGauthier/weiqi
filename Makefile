@@ -24,7 +24,7 @@ CFLAGS += $(if $(CONFIG_DIR),-DW_CONFIG_DIR=\"$(CONFIG_DIR)\") -DW_DATA_DIR=\"$(
 CFLAGS += $(if $(COORDINATES),-DW_COORDINATES)
 
 OBJECTS		:= $(patsubst %.c,%.o,$(wildcard src/*.c))
-TEXTURES	:= wood.png wood2.png wood3.png sky.hdr
+TEXTURES	:= wood.png wood2.png wood3.png sky.hdr splash.png
 TEXFILES	:= $(addprefix $(TEXTURE_SRC)/, $(TEXTURES))
 FONTFILES	:= $(DATA_SRC)/font.ttf
 
