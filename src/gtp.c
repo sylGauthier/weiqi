@@ -122,7 +122,7 @@ static int gtp_pipe_init(struct Player* player, struct Weiqi* w, int color) {
 static int gtp_send_move(struct Player* player,
                   enum WeiqiColor color, enum MoveAction action,
                   unsigned char row, unsigned char col) {
-    char move[5] = {0};
+    char move[8] = {0};
     struct GTPConnection* c = player->data;
 
     if (!weiqi_move_to_str(move, action, row, col)) return W_FORMAT_ERROR;

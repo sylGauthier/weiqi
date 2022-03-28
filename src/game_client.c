@@ -152,7 +152,7 @@ static int client_genmove(struct GameClient* c, const char* color) {
     enum MoveAction action;
     enum WeiqiColor wcol;
     unsigned char row, col;
-    char move[5];
+    char move[8];
 
     if (!strcmp(color, "white")) wcol = W_WHITE;
     else wcol = W_BLACK;
