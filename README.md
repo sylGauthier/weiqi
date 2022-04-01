@@ -32,18 +32,18 @@ Only linux is supported for now. Requires openGL >= 3.1 and GLFW3.
 - `glfw3`
 - `libpng`
 - `jansson`
-- [3dmr](https://github.com/sylGauthier/3dmr)
-- [3dasset](https://github.com/sylGauthier/3dasset)
-- [3dnk](https://github.com/sylGauthier/3dnk)
+- [3dmr](https://pedantic.software/git/3dmr) **branch `syg/master`**
+- [3dasset](https://pedantic.software/git/~syg/3dasset)
+- [3dnk](https://pedantic.software/git/~syg/3dnk)
 
 ### Build
 
 Once you have installed the dependencies, to install `weiqi`:
 
 ```
-git clone https://github.com/sylGauthier/weiqi
+git clone https://pedantic.software/git/weiqi
 cd weiqi
-sudo make install
+make install PREFIX=<path_to_install> #defaults to /usr/local
 ```
 
 ## How to play
